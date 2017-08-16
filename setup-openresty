@@ -1,126 +1,586 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -e
-set -x
 
-. versions
 
-DISTRO=$(lsb_release -i -s)
-RELEASE=$(lsb_release -r -s)
+case "$0" in
+  /*) my_dir=$(dirname "$0") ;;
+  *) my_dir=$(dirname "$(pwd)/${0#./}") ;;
+esac
 
-if [[ -z "${DISTRO}" || -z "${RELEASE}" ]] ; then
+. ${my_dir}/versions
+
+if test -f /etc/os-release ; then
+  DISTRO=$(. /etc/os-release && printf "${ID}" )
+  RELEASE=$(. /etc/os-release && printf "${VERSION_ID}" )
+elif test -f /etc/fedora-release ; then
+  DISTRO="fedora"
+  RELEASE="Unknown"
+elif test -f /etc/debian_version ; then
+  DISTRO="debian"
+  RELEASE="Unknown"
+elif test -f /etc/redhat-release ; then
+  DISTRO="centos"
+  RELEASE="Unknown"
+elif test -f /etc/alpine-release ; then
+  DISTRO="alpine"
+  RELEASE="Unknown"
+fi
+
+if test -z "${DISTRO}" ; then
   printf "Unable to determine distro\n"
   exit 1
 fi
 
-
-if [[ "$(id -u)" != "0" ]] ; then
+if test "$(id -u)" != "0" ; then
   printf "Run this script as root\n"
   exit 1
 fi
 
-APT_UPDATE_CMD="apt-get update"
-APT_INSTALL_CMD="apt-get install -y"
+# defaults
 
-if [[ "${DISTRO}" = "Ubuntu" || "${DISTRO}" = "Debian" ]] ; then
-  UPDATE_CMD="${APT_UPDATE_CMD}"
-  INSTALL_CMD="${APT_INSTALL_CMD}"
-  PACKAGE_LIST="libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl make build-essential unzip curl git patch"
+#default on modules
+select=1
+poll=1
+http_charset=1
+http_gzip=1
+http_ssi=1
+http_userid=1
+http_access=1
+http_auth_basic=1
+http_autoindex=1
+http_geo=1
+http_map=1
+http_split_clients=1
+http_referer=1
+http_rewrite=1
+http_proxy=1
+http_fastcgi=1
+http_uwsgi=1
+http_scgi=1
+http_memcached=1
+http_limit_conn=1
+http_limit_req=1
+http_empty_gif=1
+http_browser=1
+http_upstream_hash=1
+http_upstream_ip_hash=1
+http_upstream_least_conn=1
+http_upstream_keepalive=1
+http_upstream_zone=1
+mail_pop3=1
+mail_imap=1
+mail_smtp=1
+stream_limit_conn=1
+stream_access=1
+stream_map=1
+stream_return=1
+stream_upstream_hash=1
+stream_upstream_least_conn=1
+stream_upstream_zone=1
+
+#default on openresty modules
+http_echo=1
+http_xss=1
+http_coolkit=1
+http_set_misc=1
+http_form_input=1
+http_encrypted_session=1
+http_srcache=1
+http_lua=1
+http_lua_upstream=1
+http_headers_more=1
+http_array_var=1
+http_memc=1
+http_redis2=1
+http_redis=1
+http_rds_json=1
+http_rds_csv=1
+http_ssl=1
+ngx_devel_kit=1
+
+
+#default on not-modules
+http=1
+
+#default off
+http_addition=0
+http_auth_request=0
+http_dav=0
+http_flv=0
+http_geoip=0
+http_gunzip=0
+http_gzip_static=0
+http_image_filter=0
+http_mp4=0
+http_random_index=0
+http_realip=0
+http_secure_link=0
+http_slice=0
+http_stub_status=0
+http_sub=0
+http_v2=0
+http_xslt=0
+mail=0
+mail_ssl=0
+http_drizzle=0
+http_postgres=0
+http_iconv=0
+stream=0
+stream_ssl=0
+
+# external modules installed with this script
+stream_lua=0
+rtmp=0
+stream_echo=0
+ngx_lua_ipc=0
+nchan=0
+
+for opt in "$@" ; do
+    case "$opt" in
+      --with-*)
+        opt=$(printf '%s' "$opt" | tr '-' '_')
+        opt=${opt%_module}
+        var=${opt#__with_}
+        eval "${var}=1"
+        ;;
+      --with_*)
+        opt=$(printf '%s' "$opt" | tr '-' '_')
+        opt=${opt%_module}
+        var=${opt#__with_}
+        eval "${var}=1"
+        ;;
+      --without-*)
+        opt=$(printf '%s' "$opt" | tr '-' '_')
+        opt=${opt%_module}
+        var=${opt#__with_}
+        eval "${var}=0"
+        ;;
+      --without_*)
+        opt=$(printf '%s' "$opt" | tr '-' '_')
+        opt=${opt%_module}
+        var=${opt#__with_}
+        eval "${var}=0"
+        ;;
+      --minimal)
+        http_charset=0
+        http_gzip=0
+        http_ssi=0
+        http_userid=0
+        http_access=0
+        http_auth_basic=0
+        http_autoindex=0
+        http_geo=0
+        http_map=0
+        http_split_clients=0
+        http_referer=0
+        http_rewrite=0
+        http_proxy=0
+        http_fastcgi=0
+        http_uwsgi=0
+        http_scgi=0
+        http_memcached=0
+        http_limit_conn=0
+        http_limit_req=0
+        http_empty_gif=0
+        http_browser=0
+        http_upstream_hash=0
+        http_upstream_ip_hash=0
+        http_upstream_least_conn=0
+        http_upstream_keepalive=0
+        http_upstream_zone=0
+        mail_pop3=0
+        mail_imap=0
+        mail_smtp=0
+        stream_limit_conn=0
+        stream_access=0
+        stream_map=0
+        stream_return=0
+        stream_upstream_hash=0
+        stream_upstream_least_conn=0
+        stream_upstream_zone=0
+        http_echo=0
+        http_xss=0
+        http_coolkit=0
+        http_set_misc=0
+        http_form_input=0
+        http_encrypted_session=0
+        http_srcache=0
+        http_lua=0
+        http_lua_upstream=0
+        http_headers_more=0
+        http_array_var=0
+        http_memc=0
+        http_redis2=0
+        http_redis=0
+        http_rds_json=0
+        http_rds_csv=0
+        ngx_devel_kit=0
+        http_addition=0
+        http_auth_request=0
+        http_dav=0
+        http_flv=0
+        http_geoip=0
+        http_gunzip=0
+        http_gzip_static=0
+        http_image_filter=0
+        http_mp4=0
+        http_random_index=0
+        http_realip=0
+        http_secure_link=0
+        http_slice=0
+        http_ssl=0
+        http_stub_status=0
+        http_sub=0
+        http_v2=0
+        http_xslt=0
+        mail=0
+        mail_ssl=0
+        http_drizzle=0
+        http_postgres=0
+        http_iconv=0
+        stream=0
+        stream_ssl=0
+        stream_lua=0
+        rtmp=0
+        stream_echo=0
+        ngx_lua_ipc=0
+        nchan=0
+        ;;
+      --large)
+        # don't enable drizzle/postgres/iconv
+        http_addition=1
+        http_auth_request=1
+        http_dav=1
+        http_flv=1
+        http_geoip=1
+        http_gunzip=1
+        http_gzip_static=1
+        http_image_filter=1
+        http_mp4=1
+        http_random_index=1
+        http_realip=1
+        http_secure_link=1
+        http_slice=1
+        http_ssl=1
+        http_stub_status=1
+        http_sub=1
+        http_v2=1
+        http_xslt=1
+        mail=1
+        mail_ssl=1
+        #http_drizzle=1
+        #http_postgres=1
+        #http_iconv=1
+        stream=1
+        stream_ssl=1
+        stream_lua=1
+        rtmp=1
+        stream_echo=1
+        ngx_lua_ipc=1
+        nchan=1
+       ;;
+    esac
+done
+
+if ! test command -v pushd 1>/dev/null 2>&1 ; then
+pushd() {
+    if test -z "PUSHD_STACK" ; then
+        PUSHD_STACK="$PWD"
+    else
+        PUSHD_STACK="$PUSHD_STACK;$PWD"
+    fi
+    cd "$1"
+}
+popd() {
+    if test -n ${IFS+x} ; then
+      OLDIFS="${IFS}"
+    fi
+    IFS=";"
+    NEW_PUSHD_STACK=""
+    NEW_DIR=""
+    for dir in ${PUSHD_STACK} ; do
+      if test -z "${NEW_DIR}" ; then
+        NEW_DIR="${dir}"
+      else
+        if test -z "${NEW_PUSHD_STACK}" ; then
+          NEW_PUSHD_STACK="${NEW_DIR}"
+        else
+          NEW_PUSHD_STACK="${NEW_PUSHD_STACK};${NEW_DIR}"
+        fi
+        NEW_DIR="${dir}"
+      fi
+    done
+    if test -n ${OLDIFS+x} ; then
+      IFS="${OLDIFS}"
+    else
+      unset IFS
+    fi
+    cd "${NEW_DIR}"
+    PUSHD_STACK="${NEW_PUSHD_STACK}"
+    unset NEW_PUSHD_STACK
+    unset NEW_DIR
+}
 fi
 
-if [[ -z "${INSTALL_CMD}" ]] ; then
-  printf "${DISTRO} ${RELEASE} is not supported - please open an issue\n"
+download() {
+  if ! test -f /src/"${2}" ; then
+    curl -R -L -o /src/"${2}" \
+      "${1}"
+  fi
+}
+
+extract() {
+  if ! test -d /src/${1} ; then
+    case "${2}" in
+      ".tar.gz")  tar xzf "/src/${1}${2}" -C /src ;;
+      ".tar.bz2") tar xjf "/src/${1}${2}" -C /src ;;
+      ".tar.xz")  tar xJf "/src/${1}${2}" -C /src ;;
+      *) printf "Unknown file format" ; exit 1 ;;
+    esac
+    if test -d ${my_dir}/patches/${1} ; then
+      pushd /src/$1
+      for p in ${my_dir}/patches/${1}/*.patch ; do
+        patch -p1 < ${p}
+      done
+      popd
+    fi
+  fi
+}
+
+
+if test "${DISTRO}" = "ubuntu"; then
+  UPDATE_CMD="apt-get update"
+  INSTALL_CMD="apt-get install -y"
+  PACKAGE_LIST="linux-headers-generic libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl make gcc unzip curl git patch tar gzip"
+
+elif test "${DISTRO}" = "debian" ; then
+  UPDATE_CMD="apt-get update"
+  INSTALL_CMD="apt-get install -y"
+  if test "${RELEASE}" -gt 8 ; then
+    PACKAGE_LIST="linux-headers-amd64 libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev libssl1.0-dev perl make gcc unzip curl git patch tar gzip"
+  else
+    PACKAGE_LIST="linux-headers-amd64 libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl make gcc unzip curl git patch tar gzip"
+  fi
+
+elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" ; then
+  INSTALL_CMD="yum install -y"
+  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel openssl-devel perl make gcc unzip curl git patch tar gzip"
+
+elif test "${DISTRO}" = "fedora" ; then
+  INSTALL_CMD="dnf install -y"
+  if test "${RELEASE}" -gt 25 ; then
+    PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel compat-openssl10-devel perl make gcc unzip curl git patch"
+  else
+    PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel openssl-devel perl make gcc unzip curl git patch tar gzip"
+  fi
+
+elif test "${DISTRO}" = "alpine" ; then
+  UPDATE_CMD="apk update"
+  INSTALL_CMD="apk add"
+  PACKAGE_LIST="linux-headers gd-dev geoip-dev libxslt-dev musl-dev zlib-dev readline-dev ncurses-dev pcre-dev libressl-dev perl make unzip curl git patch gcc tar gzip"
+
+elif test "${DISTRO}" = "opensuse" ; then
+  INSTALL_CMD="zypper install -y"
+  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel libGeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel libopenssl-devel perl make gcc unzip curl git patch tar gzip"
+fi
+
+if test -z "${INSTALL_CMD}" ; then
+  printf "${DISTRO} is not supported - please open an issue\n"
   exit 1
 fi
 
-${UPDATE_CMD}
+if test -n "${UPDATE_CMD}" ; then
+  ${UPDATE_CMD}
+fi
 ${INSTALL_CMD} ${PACKAGE_LIST}
 
-if [[ ! -d "/src" ]] ; then
+if ! test -d "/src" ; then
   mkdir "/src"
 fi
 
-if [[ ! -d "/opt" ]] ; then
+if ! test -d "/opt" ; then
   mkdir "/opt"
 fi
 
-if [[ ! -f /src/openresty-${OPENRESTY_VERSION}.tar.gz ]] ; then
-  curl -R -L -o /src/openresty-${OPENRESTY_VERSION}.tar.gz \
-    "https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz"
-fi
+download \
+  "https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz" \
+  "openresty-${OPENRESTY_VERSION}.tar.gz"
 
-if [[ ! -f /src/luarocks-${LUAROCKS_VERSION}.tar.gz ]] ; then
-  curl -R -L -o /src/luarocks-${LUAROCKS_VERSION}.tar.gz \
-    "https://luarocks.github.io/luarocks/releases/luarocks-${LUAROCKS_VERSION}.tar.gz"
-fi
+download \
+  "https://luarocks.github.io/luarocks/releases/luarocks-${LUAROCKS_VERSION}.tar.gz" \
+  "luarocks-${LUAROCKS_VERSION}.tar.gz"
 
-if [[ ! -f /src/lua-${LUA_VERSION}.tar.gz ]] ; then
-  curl -R -L -o /src/lua-${LUA_VERSION}.tar.gz \
-    "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz"
-fi
+download \
+  "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" \
+  "lua-${LUA_VERSION}.tar.gz"
 
-if [[ ! -d /src/openresty-${OPENRESTY_VERSION} ]] ; then
-  tar xf "/src/openresty-${OPENRESTY_VERSION}.tar.gz" -C /src
-fi
+download \
+  "https://github.com/openresty/stream-echo-nginx-module/archive/${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" \
+  "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz"
 
-if [[ ! -d /src/luarocks-${LUAROCKS_VERSION} ]] ; then
-  tar xf "/src/luarocks-${LUAROCKS_VERSION}.tar.gz" -C /src
-fi
+download \
+  "https://github.com/openresty/stream-lua-nginx-module/archive/${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz" \
+  "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz"
 
-if [[ ! -d /src/lua-${LUA_VERSION} ]] ; then
-  tar xf "/src/lua-${LUA_VERSION}.tar.gz" -C /src
-  pushd /src/lua-${LUA_VERSION}
-  patch -p1 << 'EOF'
-diff --git a/src/Makefile b/src/Makefile
-index e0d4c9f..27d0fb6 100644
---- a/src/Makefile
-+++ b/src/Makefile
-@@ -8,7 +8,8 @@
- PLAT= none
- 
- CC= gcc
--CFLAGS= -O2 -Wall $(MYCFLAGS)
-+CFLAGS ?= -O2 -Wall
-+CFLAGS += $(MYCFLAGS)
- AR= ar rcu
- RANLIB= ranlib
- RM= rm -f
-@@ -23,6 +24,7 @@ MYLIBS=
- PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
- 
- LUA_A=	liblua.a
-+LUA_SO= liblua.so
- CORE_O=	lapi.o lcode.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o \
- 	lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o  \
- 	lundump.o lvm.o lzio.o
-@@ -36,7 +38,7 @@ LUAC_T=	luac
- LUAC_O=	luac.o print.o
- 
- ALL_O= $(CORE_O) $(LIB_O) $(LUA_O) $(LUAC_O)
--ALL_T= $(LUA_A) $(LUA_T) $(LUAC_T)
-+ALL_T= $(LUA_A) $(LUA_SO) $(LUA_T) $(LUAC_T)
- ALL_A= $(LUA_A)
- 
- default: $(PLAT)
-@@ -51,6 +53,9 @@ $(LUA_A): $(CORE_O) $(LIB_O)
- 	$(AR) $@ $(CORE_O) $(LIB_O)	# DLL needs all object files
- 	$(RANLIB) $@
- 
-+$(LUA_SO): $(CORE_O) $(LIB_O)
-+	$(CC) -shared -o $(LUA_SO) $(CORE_O) $(LIB_O) -lm -ldl
-+
- $(LUA_T): $(LUA_O) $(LUA_A)
- 	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
- 
-EOF
-  popd
-fi
+download \
+  "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" \
+  "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz"
 
-if [[ ! -d "/opt/openresty-${OPENRESTY_VERSION}" ]] ; then
+download \
+  "https://github.com/slact/ngx_lua_ipc/archive/v${NGX_LUA_IPC_VERSION}.tar.gz" \
+  "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}.tar.gz"
+
+download \
+  "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
+  "nchan-${NCHAN_VERSION}.tar.gz"
+
+extract "openresty-${OPENRESTY_VERSION}" ".tar.gz"
+extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
+extract "lua-${LUA_VERSION}" ".tar.gz"
+extract "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}" ".tar.gz"
+extract "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}" ".tar.gz"
+extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
+extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
+extract "nchan-${NCHAN_VERSION}" ".tar.gz"
+
+openresty_options=""
+openresty_modules=""
+
+for opt in \
+  'http' ; do
+  eval "val=\$${opt}"
+  if [ ${val} -eq 0 ] ; then
+    openresty_options="${openresty_options} --without-${opt}"
+  fi
+done
+
+for opt in \
+  'stream' \
+  'mail' ; do
+  eval "val=\$${opt}"
+  if [ ${val} -eq 1 ] ; then
+    openresty_options="${openresty_options} --with-${opt}"
+  fi
+done
+
+for mod_opt in \
+  'http_addition' \
+  'http_auth_request' \
+  'http_dav' \
+  'http_flv' \
+  'http_geoip' \
+  'http_gunzip' \
+  'http_gzip_static' \
+  'http_image_filter' \
+  'http_mp4' \
+  'http_random_index' \
+  'http_realip' \
+  'http_secure_link' \
+  'http_slice' \
+  'http_stub_status' \
+  'http_sub' \
+  'http_v2' \
+  'http_xslt' \
+  'http_drizzle' \
+  'http_postgres' \
+  'http_iconv' \
+  'mail_ssl' \
+  'stream_ssl' ; do
+  eval "mod_val=\$${mod_opt}"
+  if [ ${mod_val} -eq 1 ] ; then
+    openresty_options="${openresty_options} --with-${mod_opt}_module"
+  fi
+done
+
+for mod_opt in \
+  'select' \
+  'poll' \
+  'http_charset' \
+  'http_gzip' \
+  'http_ssi' \
+  'http_userid' \
+  'http_access' \
+  'http_auth_basic' \
+  'http_autoindex' \
+  'http_geo' \
+  'http_ssl' \
+  'http_map' \
+  'http_split_clients' \
+  'http_referer' \
+  'http_rewrite' \
+  'http_proxy' \
+  'http_fastcgi' \
+  'http_uwsgi' \
+  'http_scgi' \
+  'http_memcached' \
+  'http_limit_conn' \
+  'http_limit_req' \
+  'http_empty_gif' \
+  'http_browser' \
+  'http_upstream_hash' \
+  'http_upstream_ip_hash' \
+  'http_upstream_least_conn' \
+  'http_upstream_keepalive' \
+  'http_upstream_zone' \
+  'mail_pop3' \
+  'mail_imap' \
+  'mail_smtp' \
+  'stream_limit_conn' \
+  'stream_access' \
+  'stream_map' \
+  'stream_return' \
+  'stream_upstream_hash' \
+  'stream_upstream_least_conn' \
+  'stream_upstream_zone' \
+  'http_echo' \
+  'http_xss' \
+  'http_coolkit' \
+  'http_set_misc' \
+  'http_form_input' \
+  'http_encrypted_session' \
+  'http_srcache' \
+  'http_lua' \
+  'http_lua_upstream' \
+  'http_headers_more' \
+  'http_array_var' \
+  'http_memc' \
+  'http_redis2' \
+  'http_redis' \
+  'http_rds_json' \
+  'http_rds_csv' \
+  'ngx_devel_kit' ; do
+  eval "mod_val=\$${mod_opt}"
+  if [ ${mod_val} -eq 0 ] ; then
+    openresty_options="${openresty_options} --without-${mod_opt}_module"
+  fi
+done
+
+for ext_mod_opt in \
+  'stream_lua' \
+  'rtmp' \
+  'stream_echo' \
+  'ngx_lua_ipc' \
+  'nchan' ; do
+  eval "mod_val=\$${ext_mod_opt}"
+  if [ ${mod_val} -eq 1 ] ; then
+    eval "mod_path=\$${ext_mod_opt}_path"
+    openresty_modules="${openresty_modules} --add-module=/src/${mod_path}"
+  fi
+done
+
+if ! test -d "/opt/openresty-${OPENRESTY_VERSION}" ; then
   pushd /src/openresty-${OPENRESTY_VERSION}
+  printf "./configure --prefix=/opt/openresty-${OPENRESTY_VERSION}  --with-file-aio  --with-ipv6  --with-md5-asm  --with-pcre-jit  --with-sha1-asm  --with-threads ${openresty_options} ${openresty_modules}\n"
   ./configure \
     --prefix=/opt/openresty-${OPENRESTY_VERSION} \
+    --with-file-aio \
+    --with-ipv6 \
+    --with-md5-asm \
     --with-pcre-jit \
-    --with-ipv6
+    --with-sha1-asm \
+    --with-threads \
+    ${openresty_options} \
+    ${openresty_modules}
   make
   make install
   popd
@@ -131,9 +591,9 @@ pushd /opt
 ln -s openresty-${OPENRESTY_VERSION} openresty
 popd
 
-if [[ ! -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/lua" ]] ; then
+if ! test -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/lua" ; then
   pushd /src/lua-${LUA_VERSION}
-  if [[ ! -f "src/luaconf.h.orig" ]] ; then
+  if ! test -f "src/luaconf.h.orig" ; then
     mv src/luaconf.h src/luaconf.h.orig
   fi
   sed -e "s,/usr/local,/opt/openresty-${OPENRESTY_VERSION}/luajit,g" < src/luaconf.h.orig > src/luaconf.h
@@ -143,7 +603,7 @@ if [[ ! -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/lua" ]] ; then
   popd
 fi
 
-if [[ ! -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luarocks" ]] ; then
+if test ! -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luarocks" ; then
   pushd /src/luarocks-${LUAROCKS_VERSION}
   ./configure \
     --prefix=/opt/openresty-${OPENRESTY_VERSION}/luajit \
@@ -153,13 +613,19 @@ if [[ ! -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luarocks" ]] ; then
   popd
 fi
 
-if [[ "${DISTRO}" = "Ubuntu" || "${DISTRO}" = "Debian" ]] ; then
+if [ command -v update-alternatives 1>/dev/null 2>&1 ] ; then
   update-alternatives \
     --install /usr/bin/lua lua-interpreter /opt/openresty/luajit/bin/lua 500
   update-alternatives \
     --install /usr/bin/luac lua-compiler /opt/openresty/luajit/bin/luac 500
 fi
-ln -s /opt/openresty/luajit/bin/luajit   /usr/local/bin/luajit-resty
-ln -s /opt/openresty/luajit/bin/luarocks /usr/local/bin/luarocks-resty
-ln -s /opt/openresty/bin/resty     /usr/local/bin/resty
-ln -s /opt/openresty/bin/openresty /usr/local/bin/openresty
+
+ln -s /opt/openresty/luajit/bin/lua      /usr/local/bin/lua-openresty
+ln -s /opt/openresty/luajit/bin/luac     /usr/local/bin/luac-openresty
+ln -s /opt/openresty/luajit/bin/luajit   /usr/local/bin/luajit-openresty
+ln -s /opt/openresty/luajit/bin/luarocks /usr/local/bin/luarocks-openresty
+ln -s /opt/openresty/bin/resty           /usr/local/bin/resty
+ln -s /opt/openresty/bin/restydoc        /usr/local/bin/restydoc
+ln -s /opt/openresty/bin/restydoc-index  /usr/local/bin/restydoc-index
+ln -s /opt/openresty/bin/openresty       /usr/local/bin/openresty
+ln -s /opt/openresty/bin/opm             /usr/local/bin/opm
