@@ -364,7 +364,7 @@ elif test "${DISTRO}" = "debian" ; then
 
 elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" ; then
   INSTALL_CMD="yum install -y"
-  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel openssl-devel perl make gcc unzip curl git patch tar gzip"
+  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel GeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel openssl-devel perl make gcc unzip curl git patch tar gzip"
 
 elif test "${DISTRO}" = "fedora" ; then
   INSTALL_CMD="dnf install -y"

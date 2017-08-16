@@ -61,7 +61,6 @@ All these distros were tested via Docker:
 * Ubuntu Precise (12.04)
 * Ubuntu Trusty (14.04)
 * Ubuntu Xenial (16.04)
-* CentOS 6
 * CentOS 7
 * Fedora 25
 * Fedora 26
