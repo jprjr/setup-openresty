@@ -382,6 +382,13 @@ elif test "${DISTRO}" = "alpine" ; then
 elif test "${DISTRO}" = "opensuse" ; then
   INSTALL_CMD="zypper install -y"
   PACKAGE_LIST="kernel-headers libxslt-devel gd-devel libGeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel libopenssl-devel perl make gcc unzip curl git patch tar gzip"
+
+elif test "${DISTRO}" = "arch" ; then
+  UPDATE_CMD="pacman -Sy"
+  INSTALL_CMD="pacman -S --needed --noconfirm"
+  PACKAGE_LIST="linux-headers libxslt gd geoip zlib readline ncurses pcre openssl-1.0 perl make gcc unzip curl git patch tar gzip"
+  OPENRESTY_OPTS="--with-openssl=/src/openssl-${OPENSSL_VERSION}"
+
 fi
 
 if test -z "${INSTALL_CMD}" ; then
@@ -433,6 +440,9 @@ download \
 download \
   "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
   "nchan-${NCHAN_VERSION}.tar.gz"
+download \
+  "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
+  "openssl-${OPENSSL_VERSION}.tar.gz"
 
 extract "openresty-${OPENRESTY_VERSION}" ".tar.gz"
 extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
@@ -442,6 +452,7 @@ extract "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}" ".tar.gz"
 extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
 extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
 extract "nchan-${NCHAN_VERSION}" ".tar.gz"
+extract "openssl-${OPENSSL_VERSION}" ".tar.gz"
 
 openresty_options=""
 openresty_modules=""
@@ -579,6 +590,7 @@ if ! test -d "/opt/openresty-${OPENRESTY_VERSION}" ; then
     --with-pcre-jit \
     --with-sha1-asm \
     --with-threads \
+    ${OPENRESTY_OPTS} \
     ${openresty_options} \
     ${openresty_modules}
   make
