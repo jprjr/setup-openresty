@@ -10,19 +10,6 @@ This provides compatibility when installing modules with LuaRocks. For example,
 the `lua-cjson` module fails to build with LuaJIT + LuaRocks, which makes it
 hard to install rocks like Lapis.
 
-This will create symlinks under `/usr/local/bin` for convenience:
-
-* `/usr/local/bin/lua-openresty      -> /opt/openresty/luajit/bin/lua`
-* `/usr/local/bin/luac-openresty     -> /opt/openresty/luajit/bin/luac`
-* `/usr/local/bin/luajit-openresty   -> /opt/openresty/luajit/bin/luajit`
-* `/usr/local/bin/luarocks-openresty -> /opt/openresty/luajit/bin/luarocks`
-* `/usr/local/bin/openresty      -> /opt/openresty/bin/openresty`
-* `/usr/local/bin/opm            -> /opt/openresty/bin/opm`
-* `/usr/local/bin/resty          -> /opt/openresty/bin/resty`
-* `/usr/local/bin/restydoc       -> /opt/openresty/bin/restydoc`
-* `/usr/local/bin/restydoc-index -> /opt/openresty/bin/restydoc-index`
-
-You'll be able to call `luarocks-openresty` to install Rocks into OpenResty.
 
 If your system has `update-alternatives`, then it will
 add `/opt/openresty/luajit/bin/lua` as an alternative for `/usr/bin/lua`,
@@ -50,6 +37,17 @@ so these also all do the same thing:
 then use `--with-(x)` to explicitly enable the features/modules you want
 * Alternatively, you can pass `--large` to enable all the modules/features, *except* the drizzle, iconv, and postgres
 modules. You'll still need to use `--with-iconv` etc to use those.
+* `--prefix=/some/path` - change the prefix from the default `/opt/openresty-${OPENRESTY_VERSION}` to some other path
+* `--symlink` This will create symlinks under `/usr/local/bin` for convenience:
+  * `/usr/local/bin/lua-openresty      -> /opt/openresty/luajit/bin/lua`
+  * `/usr/local/bin/luac-openresty     -> /opt/openresty/luajit/bin/luac`
+  * `/usr/local/bin/luajit-openresty   -> /opt/openresty/luajit/bin/luajit`
+  * `/usr/local/bin/luarocks-openresty -> /opt/openresty/luajit/bin/luarocks`
+  * `/usr/local/bin/openresty      -> /opt/openresty/bin/openresty`
+  * `/usr/local/bin/opm            -> /opt/openresty/bin/opm`
+  * `/usr/local/bin/resty          -> /opt/openresty/bin/resty`
+  * `/usr/local/bin/restydoc       -> /opt/openresty/bin/restydoc`
+  * `/usr/local/bin/restydoc-index -> /opt/openresty/bin/restydoc-index`
 
 ## Compatibility
 

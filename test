@@ -31,6 +31,9 @@ my $distros = {
     'opensuse' => [
       '42.3',
     ],
+    'base/archlinux' => [
+      'latest',
+    ],
 };
 
 sub run {
@@ -66,7 +69,7 @@ foreach my $distro (@distros_to_test) {
     foreach my $version (@{$distros->{$distro}}) {
         print "Testing ${distro}:${version}\n";
         run('docker', 'pull', "${distro}:${version}");
-        run('docker', 'run', '--rm', '-ti', '-v', "${dir}:/tmp/setup-openresty", "${distro}:${version}", "/tmp/setup-openresty/setup-openresty", "--large");
+        run('docker', 'run', '--rm', '-ti', '-v', "${dir}:/tmp/setup-openresty", "${distro}:${version}", "/tmp/setup-openresty/setup-openresty", "--large", "--symlink");
     }
 }
 

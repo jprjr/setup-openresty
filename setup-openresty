@@ -37,6 +37,9 @@ if test "$(id -u)" != "0" ; then
 fi
 
 # defaults
+PREFIX="/opt/openresty-${OPENRESTY_VERSION}"
+nprocs=1
+make_symlinks=0
 
 #default on modules
 select=1
@@ -135,8 +138,18 @@ stream_echo=0
 ngx_lua_ipc=0
 nchan=0
 
+if command -v nproc >/dev/null 2>&1 ; then
+  nprocs=$(nproc)
+fi
+
 for opt in "$@" ; do
     case "$opt" in
+      --symlink)
+        make_symlinks=1
+        ;;
+      --prefix=*)
+        PREFIX=$(printf '%s' "$opt" | cut -d'=' -f2)
+        ;;
       --with-*)
         opt=$(printf '%s' "$opt" | tr '-' '_')
         opt=${opt%_module}
@@ -351,43 +364,34 @@ extract() {
 if test "${DISTRO}" = "ubuntu"; then
   UPDATE_CMD="apt-get update"
   INSTALL_CMD="apt-get install -y"
-  PACKAGE_LIST="linux-headers-generic libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl make gcc unzip curl git patch tar gzip"
+  PACKAGE_LIST="linux-headers-generic libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev perl make gcc unzip curl git patch tar gzip"
 
 elif test "${DISTRO}" = "debian" ; then
   UPDATE_CMD="apt-get update"
   INSTALL_CMD="apt-get install -y"
-  if test "${RELEASE}" -gt 8 ; then
-    PACKAGE_LIST="linux-headers-amd64 libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev libssl1.0-dev perl make gcc unzip curl git patch tar gzip"
-  else
-    PACKAGE_LIST="linux-headers-amd64 libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl make gcc unzip curl git patch tar gzip"
-  fi
+  PACKAGE_LIST="linux-headers-amd64 libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev perl make gcc unzip curl git patch tar gzip"
 
 elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" ; then
   INSTALL_CMD="yum install -y"
-  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel GeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel openssl-devel perl make gcc unzip curl git patch tar gzip"
+  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel GeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel perl make gcc unzip curl git patch tar gzip"
 
 elif test "${DISTRO}" = "fedora" ; then
   INSTALL_CMD="dnf install -y"
-  if test "${RELEASE}" -gt 25 ; then
-    PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel compat-openssl10-devel perl make gcc unzip curl git patch"
-  else
-    PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel openssl-devel perl make gcc unzip curl git patch tar gzip"
-  fi
+  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel perl make gcc unzip curl git patch tar gzip"
 
 elif test "${DISTRO}" = "alpine" ; then
   UPDATE_CMD="apk update"
   INSTALL_CMD="apk add"
-  PACKAGE_LIST="linux-headers gd-dev geoip-dev libxslt-dev musl-dev zlib-dev readline-dev ncurses-dev pcre-dev libressl-dev perl make unzip curl git patch gcc tar gzip"
+  PACKAGE_LIST="linux-headers gd-dev geoip-dev libxslt-dev musl-dev zlib-dev readline-dev ncurses-dev pcre-dev perl make unzip curl git patch gcc tar gzip"
 
 elif test "${DISTRO}" = "opensuse" ; then
   INSTALL_CMD="zypper install -y"
-  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel libGeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel libopenssl-devel perl make gcc unzip curl git patch tar gzip"
+  PACKAGE_LIST="kernel-headers libxslt-devel gd-devel libGeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel perl make gcc unzip curl git patch tar gzip"
 
 elif test "${DISTRO}" = "arch" ; then
   UPDATE_CMD="pacman -Sy"
   INSTALL_CMD="pacman -S --needed --noconfirm"
-  PACKAGE_LIST="linux-headers libxslt gd geoip zlib readline ncurses pcre openssl-1.0 perl make gcc unzip curl git patch tar gzip"
-  OPENRESTY_OPTS="--with-openssl=/src/openssl-${OPENSSL_VERSION}"
+  PACKAGE_LIST="linux-headers libxslt gd geoip zlib readline ncurses pcre perl make gcc unzip curl git patch tar gzip"
 
 fi
 
@@ -440,9 +444,10 @@ download \
 download \
   "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
   "nchan-${NCHAN_VERSION}.tar.gz"
+
 download \
-  "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
-  "openssl-${OPENSSL_VERSION}.tar.gz"
+  "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
+  "libressl-${LIBRESSL_VERSION}.tar.gz"
 
 extract "openresty-${OPENRESTY_VERSION}" ".tar.gz"
 extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
@@ -452,7 +457,7 @@ extract "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}" ".tar.gz"
 extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
 extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
 extract "nchan-${NCHAN_VERSION}" ".tar.gz"
-extract "openssl-${OPENSSL_VERSION}" ".tar.gz"
+extract "libressl-${LIBRESSL_VERSION}" ".tar.gz"
 
 openresty_options=""
 openresty_modules=""
@@ -579,65 +584,102 @@ for ext_mod_opt in \
   fi
 done
 
-if ! test -d "/opt/openresty-${OPENRESTY_VERSION}" ; then
-  pushd /src/openresty-${OPENRESTY_VERSION}
-  printf "./configure --prefix=/opt/openresty-${OPENRESTY_VERSION}  --with-file-aio  --with-ipv6  --with-md5-asm  --with-pcre-jit  --with-sha1-asm  --with-threads ${openresty_options} ${openresty_modules}\n"
+LIBRESSL_INSTALL_NEEDED=0
+OPENRESTY_INSTALL_NEEDED=0
+
+if ! test -f "$PREFIX/libressl/bin/openssl" ; then
+  LIBRESSL_INSTALL_NEEDED=1
+  OPENRESTY_INSTALL_NEEDED=1
+fi
+
+if test -f "${PREFIX}/libressl/bin/openssl" -a "$($PREFIX/libressl/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
+  LIBRESSL_INSTALL_NEEDED=1
+  OPENRESTY_INSTALL_NEEDED=1
+fi
+
+
+if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
+  pushd /src/libressl-${LIBRESSL_VERSION}
+  make clean || true
   ./configure \
-    --prefix=/opt/openresty-${OPENRESTY_VERSION} \
-    --with-file-aio \
-    --with-ipv6 \
-    --with-md5-asm \
-    --with-pcre-jit \
-    --with-sha1-asm \
-    --with-threads \
-    ${OPENRESTY_OPTS} \
-    ${openresty_options} \
-    ${openresty_modules}
-  make
+    --prefix=$PREFIX/libressl \
+    --enable-shared \
+    --enable-static
+  make -j$nprocs
   make install
   popd
 fi
 
-rm -f /opt/openresty
-pushd /opt
-ln -s openresty-${OPENRESTY_VERSION} openresty
-popd
+if ! test -f "$PREFIX/bin/openresty" ; then
+  OPENRESTY_INSTALL_NEEDED=1
+fi
 
-if ! test -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/lua" ; then
+if test -f "$PREFIX/bin/openresty" -a "$($PREFIX/bin/openresty -V 2>&1 | grep 'built with LibreSSL' | cut -d' ' -f4)" != "${LIBRESSL_VERSION}" ; then
+  OPENRESTY_INSTALL_NEEDED=1
+fi
+
+if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
+  pushd /src/openresty-${OPENRESTY_VERSION}
+  eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/libressl/include' '--with-ld-opt=-Wl,-rpath,$PREFIX/libressl/lib:$PREFIX/luajit/lib -L$PREFIX/libressl/lib'"
+  printf './configure'
+  printf '%s ' "$@"
+  printf '\n'
+  ./configure "$@"
+  make -j$nprocs
+  make install
+  popd
+fi
+
+if ! test -f "$PREFIX/luajit/bin/lua" ; then
   pushd /src/lua-${LUA_VERSION}
   if ! test -f "src/luaconf.h.orig" ; then
     mv src/luaconf.h src/luaconf.h.orig
   fi
-  sed -e "s,/usr/local,/opt/openresty-${OPENRESTY_VERSION}/luajit,g" < src/luaconf.h.orig > src/luaconf.h
+  sed -e "s,/usr/local,$PREFIX/luajit,g" < src/luaconf.h.orig > src/luaconf.h
   make TO_LIB="liblua.a liblua.so" clean
-  make CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" linux
-  make INSTALL_TOP="/opt/openresty-${OPENRESTY_VERSION}/luajit" TO_LIB="liblua.a liblua.so" install
+  make -j$nprocs CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" linux
+  make INSTALL_TOP="$PREFIX/luajit" TO_LIB="liblua.a liblua.so" install
   popd
 fi
 
-if test ! -f "/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luarocks" ; then
+if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   pushd /src/luarocks-${LUAROCKS_VERSION}
   ./configure \
-    --prefix=/opt/openresty-${OPENRESTY_VERSION}/luajit \
-    --with-lua=/opt/openresty-${OPENRESTY_VERSION}/luajit
+    --prefix=$PREFIX/luajit \
+    --with-lua=$PREFIX/luajit
+  make clean || true
   make build
   make install
+  cat <<EOF >$PREFIX/luajit/etc/luarocks/config-5.1.lua
+rocks_trees = {
+   { name = [[user]], root = home..[[/.luarocks]] },
+   { name = [[system]], root = [[$PREFIX/luajit]] }
+}
+
+external_deps_dirs = {
+  '$PREFIX/libressl',
+  '/usr/local',
+  '/usr',
+}
+EOF
   popd
+fi
+
+if test ${make_symlinks} -eq 1 ; then
+  ln -s $PREFIX/luajit/bin/lua      /usr/local/bin/lua-openresty
+  ln -s $PREFIX/luajit/bin/luac     /usr/local/bin/luac-openresty
+  ln -s $PREFIX/luajit/bin/luajit   /usr/local/bin/luajit-openresty
+  ln -s $PREFIX/luajit/bin/luarocks /usr/local/bin/luarocks-openresty
+  ln -s $PREFIX/bin/resty           /usr/local/bin/resty
+  ln -s $PREFIX/bin/restydoc        /usr/local/bin/restydoc
+  ln -s $PREFIX/bin/restydoc-index  /usr/local/bin/restydoc-index
+  ln -s $PREFIX/bin/openresty       /usr/local/bin/openresty
+  ln -s $PREFIX/bin/opm             /usr/local/bin/opm
 fi
 
 if [ command -v update-alternatives 1>/dev/null 2>&1 ] ; then
   update-alternatives \
-    --install /usr/bin/lua lua-interpreter /opt/openresty/luajit/bin/lua 500
+    --install /usr/bin/lua lua-interpreter $PREFIX/luajit/bin/lua 500
   update-alternatives \
-    --install /usr/bin/luac lua-compiler /opt/openresty/luajit/bin/luac 500
+    --install /usr/bin/luac lua-compiler $PREFIX/luajit/bin/luac 500
 fi
-
-ln -s /opt/openresty/luajit/bin/lua      /usr/local/bin/lua-openresty
-ln -s /opt/openresty/luajit/bin/luac     /usr/local/bin/luac-openresty
-ln -s /opt/openresty/luajit/bin/luajit   /usr/local/bin/luajit-openresty
-ln -s /opt/openresty/luajit/bin/luarocks /usr/local/bin/luarocks-openresty
-ln -s /opt/openresty/bin/resty           /usr/local/bin/resty
-ln -s /opt/openresty/bin/restydoc        /usr/local/bin/restydoc
-ln -s /opt/openresty/bin/restydoc-index  /usr/local/bin/restydoc-index
-ln -s /opt/openresty/bin/openresty       /usr/local/bin/openresty
-ln -s /opt/openresty/bin/opm             /usr/local/bin/opm
