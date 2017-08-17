@@ -590,9 +590,7 @@ OPENRESTY_INSTALL_NEEDED=0
 if ! test -f "$PREFIX/libressl/bin/openssl" ; then
   LIBRESSL_INSTALL_NEEDED=1
   OPENRESTY_INSTALL_NEEDED=1
-fi
-
-if test -f "${PREFIX}/libressl/bin/openssl" -a "$($PREFIX/libressl/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
+elif test "$($PREFIX/libressl/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
   LIBRESSL_INSTALL_NEEDED=1
   OPENRESTY_INSTALL_NEEDED=1
 fi
@@ -612,9 +610,7 @@ fi
 
 if ! test -f "$PREFIX/bin/openresty" ; then
   OPENRESTY_INSTALL_NEEDED=1
-fi
-
-if test -f "$PREFIX/bin/openresty" -a "$($PREFIX/bin/openresty -V 2>&1 | grep 'built with LibreSSL' | cut -d' ' -f4)" != "${LIBRESSL_VERSION}" ; then
+elif test "$($PREFIX/bin/openresty -V 2>&1 | grep 'built with LibreSSL' | cut -d' ' -f4)" != "${LIBRESSL_VERSION}" ; then
   OPENRESTY_INSTALL_NEEDED=1
 fi
 
@@ -645,12 +641,13 @@ fi
 if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   pushd /src/luarocks-${LUAROCKS_VERSION}
   ./configure \
-    --prefix=$PREFIX/luajit \
-    --with-lua=$PREFIX/luajit
+    --prefix=$PREFIX \
+    --with-lua=$PREFIX/luajit \
+    --rocks-tree=$PREFIX/luajit
   make clean || true
   make build
   make install
-  cat <<EOF >$PREFIX/luajit/etc/luarocks/config-5.1.lua
+  cat <<EOF >$PREFIX/etc/luarocks/config-5.1.lua
 rocks_trees = {
    { name = [[user]], root = home..[[/.luarocks]] },
    { name = [[system]], root = [[$PREFIX/luajit]] }
@@ -663,10 +660,6 @@ external_deps_dirs = {
 }
 EOF
   popd
-fi
-
-if test ! -e "$PREFIX/bin/luarocks" ; then
-  ln -s "${PREFIX}/luajit/bin/luarocks" "${PREFIX}/bin/luarocks"
 fi
 
 if test ! -e "$PREFIX/bin/lua" ; then
