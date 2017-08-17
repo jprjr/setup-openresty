@@ -650,13 +650,16 @@ if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   cat <<EOF >$PREFIX/etc/luarocks/config-5.1.lua
 rocks_trees = {
    { name = [[user]], root = home..[[/.luarocks]] },
-   { name = [[system]], root = [[$PREFIX/luajit]] }
+   { name = [[system]],
+     root = [[$PREFIX/luajit]],
+     bin_dir = [[$PREFIX/bin]],
+   }
 }
 
 external_deps_dirs = {
-  '$PREFIX/libressl',
-  '/usr/local',
-  '/usr',
+  [[$PREFIX/libressl]],
+  [[/usr/local]],
+  [[/usr]],
 }
 EOF
   popd
