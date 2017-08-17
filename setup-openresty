@@ -665,19 +665,19 @@ EOF
   popd
 fi
 
-if test ! -f "$PREFIX/bin/luarocks" ; then
+if test ! -e "$PREFIX/bin/luarocks" ; then
   ln -s "${PREFIX}/luajit/bin/luarocks" "${PREFIX}/bin/luarocks"
 fi
 
-if test ! -f "$PREFIX/bin/lua" ; then
+if test ! -e "$PREFIX/bin/lua" ; then
   ln -s "${PREFIX}/luajit/bin/lua" "${PREFIX}/bin/lua"
 fi
 
-if test ! -f "$PREFIX/bin/luac" ; then
+if test ! -e "$PREFIX/bin/luac" ; then
   ln -s "${PREFIX}/luajit/bin/luac" "${PREFIX}/bin/luac"
 fi
 
-if test ! -f "$PREFIX/bin/luajit" ; then
+if test ! -e "$PREFIX/bin/luajit" ; then
   ln -s "${PREFIX}/luajit/bin/luajit" "${PREFIX}/bin/luajit"
 fi
 
