@@ -2,14 +2,14 @@
 
 This is just a small bash script for downloading + installing OpenResty.
 
-It will install OpenResty to `/opt/openresty-${OPENRESTY_VERSION}`, then
-create a symlink at `/opt/openresty`
+It will install OpenResty to `/opt/openresty-${OPENRESTY_VERSION}` (or to a prefix
+of your choosing). It includes its own copy of LibreSSL, otherwise it tries
+to use the default system libraries, like PCRE, etc.
 
-It also downloads and installs Lua 5.1.5 + LuaRocks into `/opt/openresty/luajit`.
+It also downloads and installs Lua 5.1.5 + LuaRocks into `/opt/openresty-${OPENRESTY_VERSION}/luajit`.
 This provides compatibility when installing modules with LuaRocks. For example,
 the `lua-cjson` module fails to build with LuaJIT + LuaRocks, which makes it
 hard to install rocks like Lapis.
-
 
 If your system has `update-alternatives`, then it will
 add `/opt/openresty/luajit/bin/lua` as an alternative for `/usr/bin/lua`,
