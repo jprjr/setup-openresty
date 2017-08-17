@@ -12,8 +12,8 @@ the `lua-cjson` module fails to build with LuaJIT + LuaRocks, which makes it
 hard to install rocks like Lapis.
 
 If your system has `update-alternatives`, then it will
-add `/opt/openresty/luajit/bin/lua` as an alternative for `/usr/bin/lua`,
-and `/opt/openresty/luajit/bin/luac` as an alternative for `usr/bin/luac`.
+add `/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/lua` as an alternative for `/usr/bin/lua`,
+and `/opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luac` as an alternative for `usr/bin/luac`.
 
 You can pass options to the script to enable/disable features - they mostly
 follow the OpenResty configure script options, with a few changes:
@@ -27,8 +27,8 @@ follow the OpenResty configure script options, with a few changes:
 so these also all do the same thing:
   * `--with-http_dav`
   * `--with-http-dav`
-* There's a few extra options for enabling some 3rd-party nginx modules:
-  * `--with-stream-lua` -- enables [lua in TCP connections](https://github.com/openresty/stream-lua-nginx-module)
+* There's a few extra options for enabling some 3rd-party nginx modules not included with OpenResty
+  * `--with-stream-lua` -- enables [lua in TCP connections](https://github.com/openresty/stream-lua-nginx-module) (basically, OpenResty for TCP sockets)
   * `--with-stream-echo` -- enables [echo in TCP connections](https://github.com/openresty/stream-echo-nginx-module)
   * `--with-rtmp` - enables [rtmp](https://github.com/arut/nginx-rtmp-module)
   * `--with-nchan` - enables [nchan](https://github.com/slact/nchan)
@@ -39,14 +39,14 @@ then use `--with-(x)` to explicitly enable the features/modules you want
 modules. You'll still need to use `--with-iconv` etc to use those.
 * `--prefix=/some/path` - change the prefix from the default `/opt/openresty-${OPENRESTY_VERSION}` to some other path
 * `--symlink` This will create symlinks under `/usr/local/bin` for convenience:
-  * `/usr/local/bin/lua-openresty      -> /opt/openresty/luajit/bin/lua`
-  * `/usr/local/bin/luac-openresty     -> /opt/openresty/luajit/bin/luac`
-  * `/usr/local/bin/luajit-openresty   -> /opt/openresty/luajit/bin/luajit`
-  * `/usr/local/bin/luarocks-openresty -> /opt/openresty/luajit/bin/luarocks`
-  * `/usr/local/bin/openresty      -> /opt/openresty/bin/openresty`
-  * `/usr/local/bin/opm            -> /opt/openresty/bin/opm`
-  * `/usr/local/bin/resty          -> /opt/openresty/bin/resty`
-  * `/usr/local/bin/restydoc       -> /opt/openresty/bin/restydoc`
+  * `/usr/local/bin/lua-openresty      -> /opt/openresty-${OPENRESTY_VERSION}/luajit/bin/lua`
+  * `/usr/local/bin/luac-openresty     -> /opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luac`
+  * `/usr/local/bin/luajit-openresty   -> /opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luajit`
+  * `/usr/local/bin/luarocks-openresty -> /opt/openresty-${OPENRESTY_VERSION}/luajit/bin/luarocks`
+  * `/usr/local/bin/openresty      -> /opt/openresty-${OPENRESTY_VERSION}/bin/openresty`
+  * `/usr/local/bin/opm            -> /opt/openresty-${OPENRESTY_VERSION}/bin/opm`
+  * `/usr/local/bin/resty          -> /opt/openresty-${OPENRESTY_VERSION}/bin/resty`
+  * `/usr/local/bin/restydoc       -> /opt/openresty-${OPENRESTY_VERSION}/bin/restydoc`
   * `/usr/local/bin/restydoc-index -> /opt/openresty/bin/restydoc-index`
 
 ## Compatibility

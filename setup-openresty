@@ -665,6 +665,22 @@ EOF
   popd
 fi
 
+if test ! -f "$PREFIX/bin/luarocks" ; then
+  ln -s "${PREFIX}/luajit/bin/luarocks" "${PREFIX}/bin/luarocks"
+fi
+
+if test ! -f "$PREFIX/bin/lua" ; then
+  ln -s "${PREFIX}/luajit/bin/lua" "${PREFIX}/bin/lua"
+fi
+
+if test ! -f "$PREFIX/bin/luac" ; then
+  ln -s "${PREFIX}/luajit/bin/luac" "${PREFIX}/bin/luac"
+fi
+
+if test ! -f "$PREFIX/bin/luajit" ; then
+  ln -s "${PREFIX}/luajit/bin/luajit" "${PREFIX}/bin/luajit"
+fi
+
 if test ${make_symlinks} -eq 1 ; then
   ln -s $PREFIX/luajit/bin/lua      /usr/local/bin/lua-openresty
   ln -s $PREFIX/luajit/bin/luac     /usr/local/bin/luac-openresty
