@@ -587,10 +587,10 @@ done
 LIBRESSL_INSTALL_NEEDED=0
 OPENRESTY_INSTALL_NEEDED=0
 
-if ! test -f "$PREFIX/libressl/bin/openssl" ; then
+if ! test -f "$PREFIX/bin/openssl" ; then
   LIBRESSL_INSTALL_NEEDED=1
   OPENRESTY_INSTALL_NEEDED=1
-elif test "$($PREFIX/libressl/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
+elif test "$($PREFIX/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
   LIBRESSL_INSTALL_NEEDED=1
   OPENRESTY_INSTALL_NEEDED=1
 fi
@@ -599,8 +599,9 @@ fi
 if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
   pushd /src/libressl-${LIBRESSL_VERSION}
   make clean || true
+  LDFLAGS="-s" \
   ./configure \
-    --prefix=$PREFIX/libressl \
+    --prefix=$PREFIX \
     --enable-shared \
     --enable-static
   make -j$nprocs
@@ -620,7 +621,7 @@ fi
 
 if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
   pushd /src/openresty-${OPENRESTY_VERSION}
-  eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/libressl/include' '--with-ld-opt=-Wl,-rpath,$PREFIX/libressl/lib:$PREFIX/luajit/lib -L$PREFIX/libressl/lib'"
+  eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/include' '--with-ld-opt=-s -Wl,-rpath,$PREFIX/lib:$PREFIX/luajit/lib -L$PREFIX/lib'"
   printf './configure'
   printf '%s ' "$@"
   printf '\n'
@@ -661,7 +662,7 @@ rocks_trees = {
 }
 
 external_deps_dirs = {
-  [[$PREFIX/libressl]],
+  [[$PREFIX]],
   [[/usr/local]],
   [[/usr]],
 }
