@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 set -e
 
-
 case "$0" in
   /*) my_dir=$(dirname "$0") ;;
   *) my_dir=$(dirname "$(pwd)/${0#./}") ;;
@@ -35,6 +34,7 @@ if test "$(id -u)" != "0" ; then
   printf "Run this script as root\n"
   exit 1
 fi
+
 
 # defaults
 PREFIX="/opt/openresty-${OPENRESTY_VERSION}"
@@ -337,7 +337,7 @@ fi
 
 download() {
   if ! test -f /src/"${2}" ; then
-    curl -R -L -o /src/"${2}" \
+    curl -s -R -L -o /src/"${2}" \
       "${1}"
   fi
 }
@@ -400,10 +400,14 @@ if test -z "${INSTALL_CMD}" ; then
   exit 1
 fi
 
+PACKAGE_LOGFILE=$(mktemp)
+
+printf "Installing packages: ${PACKAGE_LIST}\n" | tee -a $PACKAGE_LOGFILE
+
 if test -n "${UPDATE_CMD}" ; then
-  ${UPDATE_CMD}
+  ${UPDATE_CMD} >> ${PACKAGE_LOGFILE} 2>&1
 fi
-${INSTALL_CMD} ${PACKAGE_LIST}
+${INSTALL_CMD} ${PACKAGE_LIST} >>${PACKAGE_LOGFILE} 2>&1
 
 if ! test -d "/src" ; then
   mkdir "/src"
@@ -413,41 +417,52 @@ if ! test -d "/opt" ; then
   mkdir "/opt"
 fi
 
+DOWNLOAD_LOGFILE=$(mktemp)
+
+printf "Downloading OpenResty ${OPENRESTY_VERSION}\n"
 download \
   "https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz" \
-  "openresty-${OPENRESTY_VERSION}.tar.gz"
+  "openresty-${OPENRESTY_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading LuaRocks ${LUAROCKS_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://luarocks.github.io/luarocks/releases/luarocks-${LUAROCKS_VERSION}.tar.gz" \
-  "luarocks-${LUAROCKS_VERSION}.tar.gz"
+  "luarocks-${LUAROCKS_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading Lua ${LUA_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" \
-  "lua-${LUA_VERSION}.tar.gz"
+  "lua-${LUA_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading Stream Echo Module ${STREAM_ECHO_NGINX_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/openresty/stream-echo-nginx-module/archive/${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" \
-  "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz"
+  "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading Stream Lua Module ${STREAM_LUA_NGINX_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/openresty/stream-lua-nginx-module/archive/${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz" \
-  "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz"
+  "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading RTMP Module ${NGINX_RTMP_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" \
-  "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz"
+  "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading Nginx Lua IPC Module ${NGX_LUA_IPC_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/slact/ngx_lua_ipc/archive/v${NGX_LUA_IPC_VERSION}.tar.gz" \
-  "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}.tar.gz"
+  "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading nchan Module ${NCHAN_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
-  "nchan-${NCHAN_VERSION}.tar.gz"
+  "nchan-${NCHAN_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading LibreSSL ${LIBRESSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
-  "libressl-${LIBRESSL_VERSION}.tar.gz"
+  "libressl-${LIBRESSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
 extract "openresty-${OPENRESTY_VERSION}" ".tar.gz"
 extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
@@ -597,15 +612,17 @@ fi
 
 
 if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
+  LIBRESSL_LOGFILE=$(mktemp)
+  printf "Installing LibreSSL ${LIBRESSL_VERSION} (log at ${LIBRESSL_LOGFILE})" | tee -a $LIBRESSL_LOGFILE
   pushd /src/libressl-${LIBRESSL_VERSION}
   make clean || true
   LDFLAGS="-s" \
   ./configure \
     --prefix=$PREFIX \
     --enable-shared \
-    --enable-static
-  make -j$nprocs
-  make install
+    --enable-static >> $LIBRESSL_LOGFILE 2>&1
+  make -j$nprocs >>$LIBRESSL_LOGFILE 2>&1
+  make install >>$LIBRESSL_LOGFILE 2>&1
   popd
 fi
 
@@ -620,38 +637,44 @@ else
 fi
 
 if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
+  OPENRESTY_LOGFILE=$(mktemp)
+  printf "Installing OpenResty ${OPENRESTY_VERSION} (log at ${OPENRESTY_LOGFILE})" | tee -a $OPENRESTY_LOGFILE
   pushd /src/openresty-${OPENRESTY_VERSION}
   eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/include' '--with-ld-opt=-s -Wl,-rpath,$PREFIX/lib:$PREFIX/luajit/lib -L$PREFIX/lib'"
-  printf './configure'
-  printf '%s ' "$@"
-  printf '\n'
-  ./configure "$@"
-  make -j$nprocs
-  make install
+  printf './configure' | tee -a $OPENRESTY_LOGFILE
+  printf '%s ' "$@" | tee -a $OPENRESTY_LOGFILE
+  printf '\n' | tee -a $OPENRESTY_LOGFILE
+  ./configure "$@" >> $OPENRESTY_LOGFILE
+  make -j$nprocs >> $OPENRESTY_LOGFILE
+  make install >> $OPENRESTY_LOGFILE
   popd
 fi
 
 if ! test -f "$PREFIX/luajit/bin/lua" ; then
+  LUA_LOGFILE=$(mktemp)
+  printf "Installing Lua ${LUA_VERSION} (log at ${LUA_LOGFILE})" | tee -a $LUA_LOGFILE
   pushd /src/lua-${LUA_VERSION}
   if ! test -f "src/luaconf.h.orig" ; then
     mv src/luaconf.h src/luaconf.h.orig
   fi
   sed -e "s,/usr/local,$PREFIX/luajit,g" < src/luaconf.h.orig > src/luaconf.h
-  make TO_LIB="liblua.a liblua.so" clean
-  make -j$nprocs CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" linux
-  make INSTALL_TOP="$PREFIX/luajit" TO_LIB="liblua.a liblua.so" install
+  make TO_LIB="liblua.a liblua.so" clean >> $LUA_LOGFILE 2>&1
+  make -j$nprocs CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" linux >> $LUA_LOGFILE 2>&1
+  make INSTALL_TOP="$PREFIX/luajit" TO_LIB="liblua.a liblua.so" install >> $LUA_LOGFILE 2>&1
   popd
 fi
 
 if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
+  LUAROCKS_LOGFILE=$(mktemp)
+  printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})" | tee -a $LUAROCKS_LOGFILE
   pushd /src/luarocks-${LUAROCKS_VERSION}
   ./configure \
     --prefix=$PREFIX \
     --with-lua=$PREFIX/luajit \
-    --rocks-tree=$PREFIX/luajit
-  make clean || true
-  make build
-  make install
+    --rocks-tree=$PREFIX/luajit >> $LUAROCKS_LOGFILE 2>&1
+  make clean || true >/dev/null 2>&1
+  make build >> $LUAROCKS_LOGFILE 2>&1
+  make install >> $LUAROCKS_LOGFILE 2>&1
   cat <<EOF >$PREFIX/etc/luarocks/config-5.1.lua
 rocks_trees = {
    { name = [[user]], root = home..[[/.luarocks]] },
