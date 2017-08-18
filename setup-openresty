@@ -613,17 +613,20 @@ fi
 
 if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
   LIBRESSL_LOGFILE=$(mktemp)
-  printf "Installing LibreSSL ${LIBRESSL_VERSION} (log at ${LIBRESSL_LOGFILE})" | tee -a $LIBRESSL_LOGFILE
+  printf "Configuring LibreSSL ${LIBRESSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
   pushd /src/libressl-${LIBRESSL_VERSION}
-  make clean || true
+  make clean || true >/dev/null 2>&1
   LDFLAGS="-s" \
   ./configure \
     --prefix=$PREFIX \
     --enable-shared \
     --enable-static >> $LIBRESSL_LOGFILE 2>&1
+  printf "Building LibreSSL\n" | tee -a $LIBRESSL_LOGFILE
   make -j$nprocs >>$LIBRESSL_LOGFILE 2>&1
+  printf "Installing LibreSSL\n" | tee -a $LIBRESSL_LOGFILE
   make install >>$LIBRESSL_LOGFILE 2>&1
   popd
+  printf "Done installing LibreSSL\n" | tee -a $LIBRESSL_LOGFILE
 fi
 
 if ! test -f "$PREFIX/bin/openresty" ; then
@@ -638,21 +641,24 @@ fi
 
 if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
   OPENRESTY_LOGFILE=$(mktemp)
-  printf "Installing OpenResty ${OPENRESTY_VERSION} (log at ${OPENRESTY_LOGFILE})" | tee -a $OPENRESTY_LOGFILE
+  printf "Configuring OpenResty ${OPENRESTY_VERSION} (log at ${OPENRESTY_LOGFILE})\n" | tee -a $OPENRESTY_LOGFILE
   pushd /src/openresty-${OPENRESTY_VERSION}
   eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/include' '--with-ld-opt=-s -Wl,-rpath,$PREFIX/lib:$PREFIX/luajit/lib -L$PREFIX/lib'"
   printf './configure' | tee -a $OPENRESTY_LOGFILE
   printf '%s ' "$@" | tee -a $OPENRESTY_LOGFILE
   printf '\n' | tee -a $OPENRESTY_LOGFILE
   ./configure "$@" >> $OPENRESTY_LOGFILE
+  printf "Building OpenResty\n" | tee -a $OPENRESTY_LOGFILE
   make -j$nprocs >> $OPENRESTY_LOGFILE
+  printf "Installing OpenResty\n" | tee -a $OPENRESTY_LOGFILE
   make install >> $OPENRESTY_LOGFILE
   popd
+  printf "Done installing OpenResty\n" | tee -a $OPENRESTY_LOGFILE
 fi
 
 if ! test -f "$PREFIX/luajit/bin/lua" ; then
   LUA_LOGFILE=$(mktemp)
-  printf "Installing Lua ${LUA_VERSION} (log at ${LUA_LOGFILE})" | tee -a $LUA_LOGFILE
+  printf "Installing Lua ${LUA_VERSION} (log at ${LUA_LOGFILE})\n" | tee -a $LUA_LOGFILE
   pushd /src/lua-${LUA_VERSION}
   if ! test -f "src/luaconf.h.orig" ; then
     mv src/luaconf.h src/luaconf.h.orig
@@ -662,11 +668,12 @@ if ! test -f "$PREFIX/luajit/bin/lua" ; then
   make -j$nprocs CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" linux >> $LUA_LOGFILE 2>&1
   make INSTALL_TOP="$PREFIX/luajit" TO_LIB="liblua.a liblua.so" install >> $LUA_LOGFILE 2>&1
   popd
+  printf "Done installing Lua\n" | tee -a $LUA_LOGFILE
 fi
 
 if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   LUAROCKS_LOGFILE=$(mktemp)
-  printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})" | tee -a $LUAROCKS_LOGFILE
+  printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})\n" | tee -a $LUAROCKS_LOGFILE
   pushd /src/luarocks-${LUAROCKS_VERSION}
   ./configure \
     --prefix=$PREFIX \
@@ -691,6 +698,7 @@ external_deps_dirs = {
 }
 EOF
   popd
+  printf "Done installing LuaRocks\n" | tee -a $LUAROCKS_LOGFILE
 fi
 
 if test ! -e "$PREFIX/bin/lua" ; then
