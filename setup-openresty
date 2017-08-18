@@ -670,9 +670,9 @@ if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
   printf '\n' | tee -a $OPENRESTY_LOGFILE
   ./configure "$@" >> $OPENRESTY_LOGFILE
   printf "Building OpenResty\n" | tee -a $OPENRESTY_LOGFILE
-  make -j$nprocs >> $OPENRESTY_LOGFILE
+  make -j$nprocs >> $OPENRESTY_LOGFILE 2>&1
   printf "Installing OpenResty\n" | tee -a $OPENRESTY_LOGFILE
-  make install >> $OPENRESTY_LOGFILE
+  make install >> $OPENRESTY_LOGFILE 2>&1
   popd
   printf "Done installing OpenResty\n" | tee -a $OPENRESTY_LOGFILE
 fi
