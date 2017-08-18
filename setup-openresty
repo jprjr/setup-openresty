@@ -419,7 +419,9 @@ fi
 
 DOWNLOAD_LOGFILE=$(mktemp)
 
-printf "Downloading OpenResty ${OPENRESTY_VERSION}\n"
+printf "Downloading sources (details in ${DOWNLOAD_LOGFILE})\n" | tee -a $DOWNLOAD_LOGFILE
+
+printf "Downloading OpenResty ${OPENRESTY_VERSION}\n" | tee -a $DOWNLOAD_LOGFILE
 download \
   "https://openresty.org/download/openresty-${OPENRESTY_VERSION}.tar.gz" \
   "openresty-${OPENRESTY_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
@@ -464,14 +466,33 @@ download \
   "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
   "libressl-${LIBRESSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Extracting sources\n"
+
+printf "Extracting OpenResty...\n"
 extract "openresty-${OPENRESTY_VERSION}" ".tar.gz"
+
+printf "Extracting LuaRocks...\n"
 extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
+
+printf "Extractint Lua...\n"
 extract "lua-${LUA_VERSION}" ".tar.gz"
+
+printf "Extracting Stream Echo Module...\n"
 extract "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}" ".tar.gz"
+
+printf "Extracting Stream Lua Module...\n"
 extract "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}" ".tar.gz"
+
+printf "Extracting RTMP module\n"
 extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
+
+printf "Extracting Lua IPC module\n"
 extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
+
+printf "Extractint NChan...\n"
 extract "nchan-${NCHAN_VERSION}" ".tar.gz"
+
+printf "Extracting LibreSSL...\n"
 extract "libressl-${LIBRESSL_VERSION}" ".tar.gz"
 
 openresty_options=""
