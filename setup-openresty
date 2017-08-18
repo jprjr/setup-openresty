@@ -692,7 +692,7 @@ if ! test -f "$PREFIX/luajit/bin/lua" ; then
   printf "Done installing Lua\n" | tee -a $LUA_LOGFILE
 fi
 
-if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
+if test ! -f "$PREFIX/bin/luarocks" ; then
   LUAROCKS_LOGFILE=$(mktemp)
   printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})\n" | tee -a $LUAROCKS_LOGFILE
   pushd /src/luarocks-${LUAROCKS_VERSION}
