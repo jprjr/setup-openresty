@@ -610,8 +610,12 @@ fi
 
 if ! test -f "$PREFIX/bin/openresty" ; then
   OPENRESTY_INSTALL_NEEDED=1
-elif test "$($PREFIX/bin/openresty -V 2>&1 | grep 'built with LibreSSL' | cut -d' ' -f4)" != "${LIBRESSL_VERSION}" ; then
-  OPENRESTY_INSTALL_NEEDED=1
+else
+  if test "$($PREFIX/bin/openresty -V 2>&1 | grep 'built with LibreSSL' | cut -d' ' -f4)" != "${LIBRESSL_VERSION}" ; then
+    OPENRESTY_INSTALL_NEEDED=1
+  elif test "$($PREFIX/bin/openresty -V 2>&1 | grep 'nginx version:' | cut -d'/' -f2)" != "${OPENRESTY_VERSION}" ; then
+    OPENRESTY_INSTALL_NEEDED=1
+  fi
 fi
 
 if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
