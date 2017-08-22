@@ -738,7 +738,7 @@ if test ${make_symlinks} -eq 1 ; then
   ln -s $PREFIX/luajit/bin/lua      /usr/local/bin/lua-openresty
   ln -s $PREFIX/luajit/bin/luac     /usr/local/bin/luac-openresty
   ln -s $PREFIX/luajit/bin/luajit   /usr/local/bin/luajit-openresty
-  ln -s $PREFIX/luajit/bin/luarocks /usr/local/bin/luarocks-openresty
+  ln -s $PREFIX/bin/luarocks        /usr/local/bin/luarocks-openresty
   ln -s $PREFIX/bin/resty           /usr/local/bin/resty
   ln -s $PREFIX/bin/restydoc        /usr/local/bin/restydoc
   ln -s $PREFIX/bin/restydoc-index  /usr/local/bin/restydoc-index
