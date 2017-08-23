@@ -405,9 +405,9 @@ PACKAGE_LOGFILE=$(mktemp)
 printf "Installing packages: ${PACKAGE_LIST}\n" | tee -a $PACKAGE_LOGFILE
 
 if test -n "${UPDATE_CMD}" ; then
-  ${UPDATE_CMD} >> ${PACKAGE_LOGFILE} 2>&1
+  ${UPDATE_CMD} 2>&1 | tee -a $PACKAGE_LOGFILE
 fi
-${INSTALL_CMD} ${PACKAGE_LIST} >>${PACKAGE_LOGFILE} 2>&1
+${INSTALL_CMD} ${PACKAGE_LIST} 2>&1 | tee -a $PACKAGE_LOGFILE
 
 if ! test -d "/src" ; then
   mkdir "/src"
