@@ -10,7 +10,9 @@ query_owner() {
     fi
 
   elif test "${DISTRO}" = "alpine" ; then
-    apk info --who-owns -q "$1" 2>/dev/null
+    if apk info --who-owns -q "$1" >/dev/null 2>&1 ; then
+      apk info --who-owns -q "$1" 2>/dev/null
+    fi
 
   elif test "${DISTRO}" = "arch" ; then
     pacman -Qqo "$1" 2>/dev/null
