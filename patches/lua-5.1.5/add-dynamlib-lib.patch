@@ -33,7 +33,7 @@ diff -ru lua-5.1.5.orig/src/Makefile lua-5.1.5/src/Makefile
  	$(RANLIB) $@
  
 +$(LUA_SO): $(CORE_O) $(LIB_O)
-+   $(CC) -shared -o $(LUA_SO) $(CORE_O) $(LIB_O) -lm -ldl
++	$(CC) -shared -o $(LUA_SO) $(CORE_O) $(LIB_O) -lm -ldl
 +
  $(LUA_T): $(LUA_O) $(LUA_A)
  	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
