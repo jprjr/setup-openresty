@@ -1,0 +1,171 @@
+#!/bin/sh
+#
+# lddsafe - Safely print shared library dependencies (similar to ldd).
+# Author: Ricardo Garcia Gonzalez.
+# Author: Ivan Mironov.
+# License: Public domain code.
+#
+
+# Better for grep and expected output of other tools.
+export LANG=C
+
+# Print error and exit.
+die()
+{
+    printf "ERROR: $1\n" 1>&2
+    exit 1
+}
+
+# Find required program.
+findexec()
+{
+    command -v "$1" >/dev/null 2>/dev/null || die "$1 not found"
+}
+
+# Check file exists and is readable.
+checkreadable()
+{
+    [ -r "$1" ] || die "$1 missing or not readable"
+}
+
+# Check needed programs.
+findexec objdump
+findexec readelf
+findexec dirname
+findexec sed
+
+# set default options
+recursive=1
+quiet=0
+
+# Check arguments.
+while getopts "qn" opt; do
+    case $opt in
+      n) recursive=0 ;;
+      q) quiet=1 ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+if [ $# -eq 0 ]; then
+    printf "Usage: $( basename $0 ) [-n] [-q] FILE...\n" 2>&1
+    exit 1
+fi
+for arg in "$@"; do
+    checkreadable "$1"
+done
+
+# Recursively print the list of files included from /etc/ld.so.conf.
+ld_so_conf_deps()
+{
+    printf "$1\n"
+    dirname="$( dirname "$1" )"
+    patterns="$( sed -n 's/^include[\ \t]\+\(.\+\)$/\1/p' "$1" )"
+    set -o noglob
+    for pattern in $patterns; do
+        set +o noglob
+        case $pattern in
+            /*)
+                for file in $pattern; do
+                    if test -f "$file" ; then
+                        ld_so_conf_deps "$file"
+                    fi
+                done
+                ;;
+            *)
+                for file in $dirname/$pattern; do
+                    if test -f "$file" ; then
+                        ld_so_conf_deps "$file"
+                    fi
+                done
+                ;;
+        esac
+    done
+    set +o noglob
+}
+
+# Additional library directories.
+LD_LIBRARY_PATH_LIBS="${LD_LIBRARY_PATH//:/ }"
+if test -r /etc/ld.so.conf ; then
+  MORELIBDIRS="$( sed '/^include[\ \t]/d' $( ld_so_conf_deps /etc/ld.so.conf ) )"
+fi
+
+# Search for a given library name.
+searchlib()
+{
+    found=0
+    for libdir in $LIBDIRS; do
+        path="$libdir"/"$1"
+        if [ -r "$path" ]; then
+            found=1
+            break
+        fi
+    done
+    [ $found -eq 1 ] && realpath "$path" | sed 's#//*#/#g'
+}
+
+# Print dependency results, recursively.
+recursivedeps()
+{
+    for lib in $( objdump -p "$1" | \
+              sed -n 's,^ *NEEDED \+\([^ ]\+\) *$,\1,p' ); do
+        libsimple=$(printf "${lib}" | tr -c '0-z_' '_')
+        eval "visited=\${VISITEDLIBS__${libsimple}}"
+        if test -z "${visited}" ; then
+            eval "VISITEDLIBS__${libsimple}=1"
+            file=$(searchlib "$lib")
+            if [ "$file" ]; then
+                if [ $quiet -eq 1 ] ; then
+                    printf "$file\n"
+                else
+                    printf "    $lib => $file\n"
+                fi
+                [ $recursive -eq 1 ] && recursivedeps "$file"
+            else
+                if [ $quiet -eq 0 ]; then
+                    printf "    $lib => not found\n"
+                fi
+            fi
+        fi
+        unset visited
+    done
+}
+
+# Search symbol names in library directories.
+for arg in "$@"; do
+    # Print file name when more than one file given.
+    [ $# -gt 1 ] && printf "${arg}:\n"
+
+    # Set appropriate library search directories.
+    class=$( readelf -h $arg 2>/dev/null | \
+         sed -n 's/^[ \t]*Class:[\ \t]\+\(.\+\)/\1/p' )
+    if [ -z "$class" ]; then
+        printf "$arg: not an ELF file\n" 2>&1
+        continue
+    fi
+    if [ $class != ELF32 -a $class != ELF64 ]; then
+        printf "$arg: unknown ELF format\n" 2>&1
+        continue
+    fi
+    if [ $class == ELF64 ]; then
+        if [ -d /lib64 ]; then
+            stdlibs="/lib64 /usr/local/lib64 /usr/lib64"
+        else
+            stdlibs="/lib /usr/local/lib /usr/lib"
+        fi
+    else # $class == ELF32
+        if [ -d /lib32 ]; then
+            stdlibs="/lib32 /usr/local/lib32 /usr/lib32"
+        else
+            stdlibs="/lib /usr/local/lib /usr/lib"
+        fi
+    fi
+    RPATH=$(objdump -p "$arg" | sed -n 's,^ *RPATH \+\([^ ]\+\) *$,\1,p' | tr ':' ' ' | sed "s,\$ORIGIN,$(dirname $(realpath ${arg})),g")
+    RUNPATH=$(objdump -p "$arg" | sed -n 's,^ *RUNPATH \+\([^ ]\+\) *$,\1,p' | tr ':' ' ' | sed "s,\$ORIGIN,$(dirname $(realpath ${arg})),g")
+    LIBDIRS="$RPATH $RUNPATH $LD_LIBRARY_PATH_LIBS $MORELIBDIRS $stdlibs"
+
+    # Get a unique list of library dependencies for this argument.
+    recursivedeps "$arg"
+done
+exit 0

@@ -752,3 +752,9 @@ if [ command -v update-alternatives 1>/dev/null 2>&1 ] ; then
   update-alternatives \
     --install /usr/bin/luac lua-compiler $PREFIX/luajit/bin/luac 500
 fi
+
+export DISTRO
+export RELEASE
+${my_dir}/tools/lddsafe -nq "$PREFIX"/nginx/sbin/nginx | ${my_dir}/tools/find-deps | while read dep; do
+  ${my_dir}/tools/mark-explicit "${dep}"
+done

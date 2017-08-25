@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+
+if test "${DISTRO}" = "ubuntu" -o "${DISTRO}" = "debian"; then
+  apt-mark manaul "$1"
+
+elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" ; then
+  yum install -y "$1"
+
+elif test "${DISTRO}" = "fedora" ; then
+  dnf install -y "$1"
+
+elif test "${DISTRO}" = "opensuse" ; then
+  zypper install -y "$1"
+
+elif test "${DISTRO}" = "alpine" ; then
+  apk add "$1"
+
+elif test "${DISTRO}" = "arch" ; then
+  pacman -Sy --needed --asexplicit "$1"
+
+fi
+

@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+query_owner() {
+  if test "${DISTRO}" = "ubuntu" -o "${DISTRO}" = "debian"; then
+    dpkg -S "$1" 2>/dev/null | cut -f1 -d':'
+
+  elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" -o "${DISTRO}" = "fedora" -o "${DISTRO}" = "opensuse" ; then
+    if rpm -qf "$1" >/dev/null 2>&1 ; then
+      rpm -qf "$1" --queryformat '%{NAME}\n' 2>/dev/null
+    fi
+
+  elif test "${DISTRO}" = "alpine" ; then
+    apk info --who-owns -q "$1" 2>/dev/null
+
+  elif test "${DISTRO}" = "arch" ; then
+    pacman -Qqo "$1" 2>/dev/null
+  fi
+}
+
+while read line; do
+    query_owner $line
+done | sort | uniq
+
