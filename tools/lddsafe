@@ -86,7 +86,7 @@ ld_so_conf_deps()
 }
 
 # Additional library directories.
-LD_LIBRARY_PATH_LIBS="${LD_LIBRARY_PATH//:/ }"
+LD_LIBRARY_PATH_LIBS=$(printf '%s' "${LD_LIBRARY_PATH}" | tr ':' ' ')
 if test -r /etc/ld.so.conf ; then
   MORELIBDIRS="$( sed '/^include[\ \t]/d' $( ld_so_conf_deps /etc/ld.so.conf ) )"
 fi
@@ -148,7 +148,7 @@ for arg in "$@"; do
         printf "$arg: unknown ELF format\n" 2>&1
         continue
     fi
-    if [ $class == ELF64 ]; then
+    if [ "$class" = "ELF64" ]; then
         if [ -d /lib64 ]; then
             stdlibs="/lib64 /usr/local/lib64 /usr/lib64"
         else

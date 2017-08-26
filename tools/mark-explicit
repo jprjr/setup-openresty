@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 if test "${DISTRO}" = "ubuntu" -o "${DISTRO}" = "debian"; then
-  apt-mark manaul "$1"
+  apt-mark manual "$1"
 
 elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" ; then
   yum install -y "$1"
