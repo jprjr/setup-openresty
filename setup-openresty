@@ -692,18 +692,17 @@ if ! test -f "$PREFIX/luajit/bin/lua" ; then
   printf "Done installing Lua\n" | tee -a $LUA_LOGFILE
 fi
 
-if test ! -f "$PREFIX/bin/luarocks" ; then
+if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   LUAROCKS_LOGFILE=$(mktemp)
   printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})\n" | tee -a $LUAROCKS_LOGFILE
   pushd /src/luarocks-${LUAROCKS_VERSION}
   ./configure \
-    --prefix=$PREFIX \
-    --with-lua=$PREFIX/luajit \
-    --rocks-tree=$PREFIX/luajit >> $LUAROCKS_LOGFILE 2>&1
+    --prefix=$PREFIX/luajit \
+    --with-lua=$PREFIX/luajit >> $LUAROCKS_LOGFILE 2>&1
   make clean >/dev/null 2>&1 || true
   make build >> $LUAROCKS_LOGFILE 2>&1
-  make install >> $LUAROCKS_LOGFILE 2>&1
-  cat <<EOF >$PREFIX/etc/luarocks/config-5.1.lua
+  make bootstrap >> $LUAROCKS_LOGFILE 2>&1
+  cat <<EOF >$PREFIX/luajit/etc/luarocks/config-5.1.lua
 rocks_trees = {
    { name = [[user]], root = home..[[/.luarocks]] },
    { name = [[system]],
@@ -732,6 +731,10 @@ fi
 
 if test ! -e "$PREFIX/bin/luajit" ; then
   ln -s "${PREFIX}/luajit/bin/luajit" "${PREFIX}/bin/luajit"
+fi
+
+if test ! -e "$PREFIX/bin/luarocks" ; then
+  ln -s "${PREFIX}/luajit/bin/luarocks" "${PREFIX}/bin/luarocks"
 fi
 
 if test ${make_symlinks} -eq 1 ; then
