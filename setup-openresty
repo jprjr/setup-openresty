@@ -100,6 +100,7 @@ http_rds_json=1
 http_rds_csv=1
 http_ssl=1
 ngx_devel_kit=1
+stream_lua=1
 
 
 #default on not-modules
@@ -132,7 +133,6 @@ stream=0
 stream_ssl=0
 
 # external modules installed with this script
-stream_lua=0
 rtmp=0
 stream_echo=0
 ngx_lua_ipc=0
@@ -441,11 +441,6 @@ download \
   "https://github.com/openresty/stream-echo-nginx-module/archive/${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" \
   "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
-printf "Downloading Stream Lua Module ${STREAM_LUA_NGINX_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/openresty/stream-lua-nginx-module/archive/${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz" \
-  "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
-
 printf "Downloading RTMP Module ${NGINX_RTMP_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" \
@@ -479,9 +474,6 @@ extract "lua-${LUA_VERSION}" ".tar.gz"
 
 printf "Extracting Stream Echo Module...\n"
 extract "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}" ".tar.gz"
-
-printf "Extracting Stream Lua Module...\n"
-extract "stream-lua-nginx-module-${STREAM_LUA_NGINX_MODULE_VERSION}" ".tar.gz"
 
 printf "Extracting RTMP module\n"
 extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
@@ -600,6 +592,7 @@ for mod_opt in \
   'http_redis' \
   'http_rds_json' \
   'http_rds_csv' \
+  'stream_lua' \
   'ngx_devel_kit' ; do
   eval "mod_val=\$${mod_opt}"
   if [ ${mod_val} -eq 0 ] ; then
@@ -608,7 +601,6 @@ for mod_opt in \
 done
 
 for ext_mod_opt in \
-  'stream_lua' \
   'rtmp' \
   'stream_echo' \
   'ngx_lua_ipc' \
