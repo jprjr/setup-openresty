@@ -134,6 +134,7 @@ stream_ssl=0
 
 # external modules installed with this script
 rtmp=0
+flv=0
 stream_echo=0
 ngx_lua_ipc=0
 nchan=0
@@ -255,6 +256,7 @@ for opt in "$@" ; do
         stream_ssl=0
         stream_lua=0
         rtmp=0
+        flv=0
         stream_echo=0
         ngx_lua_ipc=0
         nchan=0
@@ -287,7 +289,8 @@ for opt in "$@" ; do
         stream=1
         stream_ssl=1
         stream_lua=1
-        rtmp=1
+        rtmp=0
+        flv=1
         stream_echo=1
         ngx_lua_ipc=1
         nchan=1
@@ -446,6 +449,11 @@ download \
   "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" \
   "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading FLV module ${NGINX_HTTP_FLV_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+download \
+  "https://github.com/winshining/nginx-http-flv-module/archive/v${NGINX_HTTP_FLV_MODULE_VERSION}.tar.gz" \
+  "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+
 printf "Downloading Nginx Lua IPC Module ${NGX_LUA_IPC_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://github.com/slact/ngx_lua_ipc/archive/v${NGX_LUA_IPC_VERSION}.tar.gz" \
@@ -477,6 +485,9 @@ extract "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}" ".tar.gz"
 
 printf "Extracting RTMP module\n"
 extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
+
+printf "Extracting FLV module\n"
+extract "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}" ".tar.gz"
 
 printf "Extracting Lua IPC module\n"
 extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
@@ -601,6 +612,7 @@ for mod_opt in \
 done
 
 for ext_mod_opt in \
+  'flv' \
   'rtmp' \
   'stream_echo' \
   'ngx_lua_ipc' \
