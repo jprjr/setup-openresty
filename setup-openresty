@@ -704,7 +704,7 @@ if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   ./configure \
     --prefix=$PREFIX/luajit \
     --with-lua=$PREFIX/luajit >> $LUAROCKS_LOGFILE 2>&1
-  make >> $LUAROCKS_LOGFILE 2>&1
+  make build >> $LUAROCKS_LOGFILE 2>&1
   make bootstrap >> $LUAROCKS_LOGFILE 2>&1
   cat <<EOF >$PREFIX/luajit/etc/luarocks/config-5.1.lua
 rocks_trees = {
