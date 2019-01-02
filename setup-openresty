@@ -367,7 +367,7 @@ extract() {
 if test "${DISTRO}" = "ubuntu"; then
   libgd_xpm_dev=libgd2-xpm-dev
   # On 18.04, libgd2-xpm-dev was renamed to libgd-xpm-dev
-  if test "${VERSION_ID}" = "18.04"; then
+  if test "${RELEASE}" = "18.04"; then
     libgd_xpm_dev=libgd-xpm-dev
   fi
   UPDATE_CMD="apt-get update"
