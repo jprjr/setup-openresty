@@ -700,10 +700,10 @@ if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   LUAROCKS_LOGFILE=$(mktemp)
   printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})\n" | tee -a $LUAROCKS_LOGFILE
   pushd /src/luarocks-${LUAROCKS_VERSION}
+  make clean >/dev/null 2>&1 || true
   ./configure \
     --prefix=$PREFIX/luajit \
     --with-lua=$PREFIX/luajit >> $LUAROCKS_LOGFILE 2>&1
-  make clean >/dev/null 2>&1 || true
   make build >> $LUAROCKS_LOGFILE 2>&1
   make bootstrap >> $LUAROCKS_LOGFILE 2>&1
   cat <<EOF >$PREFIX/luajit/etc/luarocks/config-5.1.lua
