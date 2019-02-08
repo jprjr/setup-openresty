@@ -677,7 +677,7 @@ if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
   printf "Configuring OpenResty ${OPENRESTY_VERSION} (log at ${OPENRESTY_LOGFILE})\n" | tee -a $OPENRESTY_LOGFILE
   pushd /src/openresty-${OPENRESTY_VERSION}
   eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/include' '--with-ld-opt=-s -Wl,-rpath,$PREFIX/lib:$PREFIX/luajit/lib -L$PREFIX/lib'"
-  printf './configure' | tee -a $OPENRESTY_LOGFILE
+  printf './configure ' | tee -a $OPENRESTY_LOGFILE
   printf '%s ' "$@" | tee -a $OPENRESTY_LOGFILE
   printf '\n' | tee -a $OPENRESTY_LOGFILE
   ./configure "$@" >> $OPENRESTY_LOGFILE
