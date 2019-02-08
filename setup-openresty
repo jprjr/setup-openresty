@@ -728,6 +728,14 @@ external_deps_dirs = {
   [[/usr/local]],
   [[/usr]],
 }
+
+variables = {
+  LUA        = [[$PREFIX/luajit/bin/lua]],
+  LUA_BINDIR = [[$PREFIX/luajit/bin]],
+  LUA_INCDIR = [[$PREFIX/luajit/include]],
+  LUA_LIBDIR = [[$PREFIX/luajit/lib]],
+}
+
 EOF
   popd
   printf "Done installing LuaRocks\n" | tee -a $LUAROCKS_LOGFILE
