@@ -28,11 +28,11 @@ so these also all do the same thing:
   * `--with-http_dav`
   * `--with-http-dav`
 * There's a few extra options for enabling some 3rd-party nginx modules not included with OpenResty
-  * `--with-stream-lua` -- enables [lua in TCP connections](https://github.com/openresty/stream-lua-nginx-module) (basically, OpenResty for TCP sockets)
   * `--with-stream-echo` -- enables [echo in TCP connections](https://github.com/openresty/stream-echo-nginx-module)
   * `--with-rtmp` - enables [rtmp](https://github.com/arut/nginx-rtmp-module)
   * `--with-nchan` - enables [nchan](https://github.com/slact/nchan)
   * `--with-ngx-lua-ipc` - enables [ngx_lua_ipc](https://github.com/slact/ngx_lua_ipc)
+  * `--with-flv` - enables [ngx-http-flv](https://github.com/winshining/nginx-http-flv-module), a fork of the rtmp module
 * You can also pass `--minimal` to disable all non-essential modules/features (`http` is still enabled, though),
 then use `--with-(x)` to explicitly enable the features/modules you want
 * Alternatively, you can pass `--large` to enable all the modules/features, *except* the drizzle, iconv, and postgres

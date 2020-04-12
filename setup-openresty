@@ -26,11 +26,18 @@ elif test -f /etc/alpine-release ; then
 fi
 
 if test -z "${DISTRO}" ; then
+  if uname | grep -i darwin >/dev/null 2>&1 ; then
+    DISTRO="osx"
+    RELEASE="unknown"
+  fi
+fi
+
+if test -z "${DISTRO}" ; then
   printf "Unable to determine distro\n"
   exit 1
 fi
 
-if test "$(id -u)" != "0" ; then
+if test "${DISTRO}" != "osx" && test "$(id -u)" != "0" ; then
   printf "Run this script as root\n"
   exit 1
 fi
@@ -339,22 +346,22 @@ popd() {
 fi
 
 download() {
-  if ! test -f /src/"${2}" ; then
-    curl -s -R -L -o /src/"${2}" \
+  if ! test -f ${my_dir}/src/"${2}" ; then
+    curl -s -R -L -o ${my_dir}/src/"${2}" \
       "${1}"
   fi
 }
 
 extract() {
-  if ! test -d /src/${1} ; then
+  if ! test -d ${my_dir}/src/${1} ; then
     case "${2}" in
-      ".tar.gz")  tar xzf "/src/${1}${2}" -C /src ;;
-      ".tar.bz2") tar xjf "/src/${1}${2}" -C /src ;;
-      ".tar.xz")  tar xJf "/src/${1}${2}" -C /src ;;
+      ".tar.gz")  tar xzf "${my_dir}/src/${1}${2}" -C ${my_dir}/src ;;
+      ".tar.bz2") tar xjf "${my_dir}/src/${1}${2}" -C ${my_dir}/src ;;
+      ".tar.xz")  tar xJf "${my_dir}/src/${1}${2}" -C ${my_dir}/src ;;
       *) printf "Unknown file format" ; exit 1 ;;
     esac
     if test -d ${my_dir}/patches/${1} ; then
-      pushd /src/$1
+      pushd ${my_dir}/src/$1
       for p in ${my_dir}/patches/${1}/*.patch ; do
         patch -p1 < ${p}
       done
@@ -404,6 +411,11 @@ elif test "${DISTRO}" = "arch" ; then
   INSTALL_CMD="pacman -S --needed --noconfirm"
   PACKAGE_LIST="linux-headers libxslt gd geoip zlib readline ncurses pcre perl make gcc unzip curl git patch tar gzip"
 
+elif test "${DISTRO}" = "osx" ; then
+  UPDATE_CMD="brew update"
+  INSTALL_CMD="brew install"
+  PACKAGE_LIST="gd geoip pcre"
+
 fi
 
 if test -z "${INSTALL_CMD}" ; then
@@ -420,8 +432,8 @@ if test -n "${UPDATE_CMD}" ; then
 fi
 ${INSTALL_CMD} ${PACKAGE_LIST} 2>&1 | tee -a $PACKAGE_LOGFILE
 
-if ! test -d "/src" ; then
-  mkdir "/src"
+if ! test -d "${my_dir}/src" ; then
+  mkdir "${my_dir}/src"
 fi
 
 if ! test -d "/opt" ; then
@@ -474,7 +486,7 @@ download \
 
 printf "Downloading LibreSSL ${LIBRESSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
-  "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
+  "http://www.mirrorservice.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
   "libressl-${LIBRESSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
 printf "Extracting sources\n"
@@ -628,7 +640,7 @@ for ext_mod_opt in \
   eval "mod_val=\$${ext_mod_opt}"
   if [ ${mod_val} -eq 1 ] ; then
     eval "mod_path=\$${ext_mod_opt}_path"
-    openresty_modules="${openresty_modules} --add-module=/src/${mod_path}"
+    openresty_modules="${openresty_modules} --add-module=${my_dir}/src/${mod_path}"
   fi
 done
 
@@ -647,7 +659,7 @@ fi
 if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
   LIBRESSL_LOGFILE=$(mktemp)
   printf "Configuring LibreSSL ${LIBRESSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
-  pushd /src/libressl-${LIBRESSL_VERSION}
+  pushd ${my_dir}/src/libressl-${LIBRESSL_VERSION}
   make clean >/dev/null 2>&1 || true
   LDFLAGS="-s" \
   ./configure \
@@ -672,11 +684,16 @@ else
   fi
 fi
 
+_file_aio=""
+if test "${DISTRO}" != "osx" ; then
+  _file_aio="--with-file-aio"
+fi
+
 if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
   OPENRESTY_LOGFILE=$(mktemp)
   printf "Configuring OpenResty ${OPENRESTY_VERSION} (log at ${OPENRESTY_LOGFILE})\n" | tee -a $OPENRESTY_LOGFILE
-  pushd /src/openresty-${OPENRESTY_VERSION}
-  eval "set -- '--prefix=$PREFIX' '--with-file-aio' '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/include' '--with-ld-opt=-s -Wl,-rpath,$PREFIX/lib:$PREFIX/luajit/lib -L$PREFIX/lib'"
+  pushd ${my_dir}/src/openresty-${OPENRESTY_VERSION}
+  eval "set -- '--prefix=$PREFIX' ${_file_aio} '--with-ipv6' '--with-md5-asm' '--with-pcre-jit' '--with-sha1-asm' '--with-threads' ${openresty_options} ${openresty_modules} '--with-cc-opt=-I$PREFIX/include' '--with-ld-opt=-s -Wl,-rpath,$PREFIX/lib:$PREFIX/luajit/lib -L$PREFIX/lib'"
   printf './configure ' | tee -a $OPENRESTY_LOGFILE
   printf '%s ' "$@" | tee -a $OPENRESTY_LOGFILE
   printf '\n' | tee -a $OPENRESTY_LOGFILE
@@ -689,16 +706,21 @@ if test ${OPENRESTY_INSTALL_NEEDED} -eq 1 ; then
   printf "Done installing OpenResty\n" | tee -a $OPENRESTY_LOGFILE
 fi
 
+_lua_platform="linux"
+if test "${DISTRO}" = "osx" ; then
+  _lua_platform="macosx"
+fi
+
 if ! test -f "$PREFIX/luajit/bin/lua" ; then
   LUA_LOGFILE=$(mktemp)
   printf "Installing Lua ${LUA_VERSION} (log at ${LUA_LOGFILE})\n" | tee -a $LUA_LOGFILE
-  pushd /src/lua-${LUA_VERSION}
+  pushd ${my_dir}/src/lua-${LUA_VERSION}
   if ! test -f "src/luaconf.h.orig" ; then
     mv src/luaconf.h src/luaconf.h.orig
   fi
   sed -e "s,/usr/local,$PREFIX/luajit,g" < src/luaconf.h.orig > src/luaconf.h
   make TO_LIB="liblua.a liblua.so" clean >> $LUA_LOGFILE 2>&1
-  make -j$nprocs CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" linux >> $LUA_LOGFILE 2>&1
+  make -j$nprocs CFLAGS="-fPIC -O2 -Wall -DLUA_USE_LINUX" ${_lua_platform} >> $LUA_LOGFILE 2>&1
   make INSTALL_TOP="$PREFIX/luajit" TO_LIB="liblua.a liblua.so" install >> $LUA_LOGFILE 2>&1
   popd
   printf "Done installing Lua\n" | tee -a $LUA_LOGFILE
@@ -707,7 +729,7 @@ fi
 if test ! -f "$PREFIX/luajit/bin/luarocks" ; then
   LUAROCKS_LOGFILE=$(mktemp)
   printf "Installing Luarocks ${LUAROCKS_VERSION} (log at ${LUAROCKS_LOGFILE})\n" | tee -a $LUAROCKS_LOGFILE
-  pushd /src/luarocks-${LUAROCKS_VERSION}
+  pushd ${my_dir}/src/luarocks-${LUAROCKS_VERSION}
   make clean >/dev/null 2>&1 || true
   ./configure \
     --prefix=$PREFIX/luajit \
@@ -778,6 +800,9 @@ fi
 
 export DISTRO
 export RELEASE
+
+if [ command -v readelf 1>/dev/null 2>&1 ] ; then
 ${my_dir}/tools/lddsafe -nq "$PREFIX"/nginx/sbin/nginx | ${my_dir}/tools/find-deps | while read dep; do
   ${my_dir}/tools/mark-explicit "${dep}"
 done
+fi
