@@ -145,6 +145,7 @@ flv=0
 stream_echo=0
 ngx_lua_ipc=0
 nchan=0
+lua_io=0
 
 if command -v nproc >/dev/null 2>&1 ; then
   nprocs=$(nproc)
@@ -267,6 +268,7 @@ for opt in "$@" ; do
         stream_echo=0
         ngx_lua_ipc=0
         nchan=0
+        lua_io=0
         ;;
       --large)
         # don't enable drizzle/postgres/iconv
@@ -301,6 +303,7 @@ for opt in "$@" ; do
         stream_echo=1
         ngx_lua_ipc=1
         nchan=1
+        lua_io=1
        ;;
     esac
 done
@@ -484,6 +487,11 @@ download \
   "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
   "nchan-${NCHAN_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading lua-io module ${LUA_IO_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+download \
+  "https://github.com/tokers/lua-io-nginx-module/archive/${LUA_IO_VERSION}.tar.gz" \
+  "lua-io-nginx-module-${LUA_IO_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+
 printf "Downloading LibreSSL ${LIBRESSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "http://www.mirrorservice.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
@@ -512,8 +520,11 @@ extract "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}" ".tar.gz"
 printf "Extracting Lua IPC module\n"
 extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
 
-printf "Extractint NChan...\n"
+printf "Extracting NChan...\n"
 extract "nchan-${NCHAN_VERSION}" ".tar.gz"
+
+printf "Extracting lua-io\n"
+extract "lua-io-nginx-module-${LUA_IO_VERSION}" ".tar.gz"
 
 printf "Extracting LibreSSL...\n"
 extract "libressl-${LIBRESSL_VERSION}" ".tar.gz"
@@ -636,7 +647,8 @@ for ext_mod_opt in \
   'rtmp' \
   'stream_echo' \
   'ngx_lua_ipc' \
-  'nchan' ; do
+  'nchan' \
+  'lua_io' ; do
   eval "mod_val=\$${ext_mod_opt}"
   if [ ${mod_val} -eq 1 ] ; then
     eval "mod_path=\$${ext_mod_opt}_path"
@@ -806,3 +818,5 @@ ${my_dir}/tools/lddsafe -nq "$PREFIX"/nginx/sbin/nginx | ${my_dir}/tools/find-de
   ${my_dir}/tools/mark-explicit "${dep}"
 done
 fi
+
+printf "OpenResty setup complete\n"
