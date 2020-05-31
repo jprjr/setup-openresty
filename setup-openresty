@@ -37,16 +37,12 @@ if test -z "${DISTRO}" ; then
   exit 1
 fi
 
-if test "${DISTRO}" != "osx" && test "$(id -u)" != "0" ; then
-  printf "Run this script as root\n"
-  exit 1
-fi
-
 
 # defaults
 PREFIX="/opt/openresty-${OPENRESTY_VERSION}"
 nprocs=1
 make_symlinks=0
+use_sudo=0
 
 #default on modules
 select=1
@@ -153,6 +149,9 @@ fi
 
 for opt in "$@" ; do
     case "$opt" in
+      --use-sudo)
+        use_sudo=1
+        ;;
       --symlink)
         make_symlinks=1
         ;;
@@ -308,6 +307,14 @@ for opt in "$@" ; do
     esac
 done
 
+if test "$(id -u)" != "0" ; then
+  if test "${DISTRO}" != "osx" && test $use_sudo -eq 0 ; then
+    printf "This script requires root privileges to install packages\n"
+    printf "Run with --use-sudo to prompt using sudo\n"
+    exit 1
+  fi
+fi
+
 if ! test command -v pushd 1>/dev/null 2>&1 ; then
 pushd() {
     if test -z "PUSHD_STACK" ; then
@@ -424,6 +431,11 @@ fi
 if test -z "${INSTALL_CMD}" ; then
   printf "${DISTRO} is not supported - please open an issue\n"
   exit 1
+fi
+
+if test $use_sudo -ne 0 ; then
+  UPDATE_CMD="sudo ${UPDATE_CMD}"
+  INSTALL_CMD="sudo ${INSTALL_CMD}"
 fi
 
 PACKAGE_LOGFILE=$(mktemp)
@@ -804,9 +816,13 @@ if test ${make_symlinks} -eq 1 ; then
 fi
 
 if [ command -v update-alternatives 1>/dev/null 2>&1 ] ; then
-  update-alternatives \
+  UPDATE_ALTERNATIVES="update-alternatives"
+  if test $use_sudo -ne 0 ; then
+      UPDATE_ALTERNATIVES="sudo ${UPDATE_ALTERNATIVES}"
+  fi
+  $UPDATE_ALTERNATIVES \
     --install /usr/bin/lua lua-interpreter $PREFIX/luajit/bin/lua 500
-  update-alternatives \
+  $UPDATE_ALTERNATIVES \
     --install /usr/bin/luac lua-compiler $PREFIX/luajit/bin/luac 500
 fi
 
@@ -814,8 +830,12 @@ export DISTRO
 export RELEASE
 
 if [ command -v readelf 1>/dev/null 2>&1 ] ; then
-${my_dir}/tools/lddsafe -nq "$PREFIX"/nginx/sbin/nginx | ${my_dir}/tools/find-deps | while read dep; do
-  ${my_dir}/tools/mark-explicit "${dep}"
+"${my_dir}/tools/lddsafe" -nq "$PREFIX"/nginx/sbin/nginx | "${my_dir}/tools/find-deps" | while read dep; do
+  if $use_sudo -ne 0 ; then
+    sudo "${my_dir}/tools/mark-explicit" "${dep}"
+  else
+    "${my_dir}/tools/mark-explicit" "${dep}"
+  fi
 done
 fi
 

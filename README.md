@@ -33,6 +33,7 @@ so these also all do the same thing:
   * `--with-nchan` - enables [nchan](https://github.com/slact/nchan)
   * `--with-ngx-lua-ipc` - enables [ngx_lua_ipc](https://github.com/slact/ngx_lua_ipc)
   * `--with-flv` - enables [ngx-http-flv](https://github.com/winshining/nginx-http-flv-module), a fork of the rtmp module
+  * `--with-lua-io` - enables [lua-io-nginx-module](https://github.com/tokers/lua-io-nginx-module)
 * You can also pass `--minimal` to disable all non-essential modules/features (`http` is still enabled, though),
 then use `--with-(x)` to explicitly enable the features/modules you want
 * Alternatively, you can pass `--large` to enable all the modules/features, *except* the drizzle, iconv, and postgres
