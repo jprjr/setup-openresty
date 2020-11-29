@@ -43,6 +43,7 @@ PREFIX="/opt/openresty-${OPENRESTY_VERSION}"
 nprocs=1
 make_symlinks=0
 use_sudo=0
+use_openssl=0
 
 #default on modules
 select=1
@@ -138,10 +139,10 @@ stream_ssl=0
 # external modules installed with this script
 rtmp=0
 flv=0
-stream_echo=0
 ngx_lua_ipc=0
 nchan=0
 lua_io=0
+lua_var_ngx=0
 
 if command -v nproc >/dev/null 2>&1 ; then
   nprocs=$(nproc)
@@ -149,6 +150,9 @@ fi
 
 for opt in "$@" ; do
     case "$opt" in
+      --use-openssl)
+        use_openssl=1
+        ;;
       --use-sudo)
         use_sudo=1
         ;;
@@ -264,10 +268,10 @@ for opt in "$@" ; do
         stream_lua=0
         rtmp=0
         flv=0
-        stream_echo=0
         ngx_lua_ipc=0
         nchan=0
         lua_io=0
+        lua_var_ngx=0
         ;;
       --large)
         # don't enable drizzle/postgres/iconv
@@ -299,11 +303,19 @@ for opt in "$@" ; do
         stream_lua=1
         rtmp=0
         flv=1
-        stream_echo=1
         ngx_lua_ipc=1
         nchan=1
         lua_io=1
+        lua_var_ngx=1
        ;;
+      --all-mods)
+        rtmp=0
+        flv=1
+        ngx_lua_ipc=1
+        nchan=1
+        lua_io=1
+        lua_var_ngx=1
+        ;;
     esac
 done
 
@@ -357,7 +369,7 @@ fi
 
 download() {
   if ! test -f ${my_dir}/src/"${2}" ; then
-    curl -s -R -L -o ${my_dir}/src/"${2}" \
+    curl -s -S -R -L -o ${my_dir}/src/"${2}" \
       "${1}"
   fi
 }
@@ -440,19 +452,28 @@ fi
 
 PACKAGE_LOGFILE=$(mktemp)
 
-printf "Installing packages: ${PACKAGE_LIST}\n" | tee -a $PACKAGE_LOGFILE
-
-if test -n "${UPDATE_CMD}" ; then
-  ${UPDATE_CMD} 2>&1 | tee -a $PACKAGE_LOGFILE
-fi
-${INSTALL_CMD} ${PACKAGE_LIST} 2>&1 | tee -a $PACKAGE_LOGFILE
+#printf "Installing packages: ${PACKAGE_LIST}\n" | tee -a $PACKAGE_LOGFILE
+#
+#if test -n "${UPDATE_CMD}" ; then
+#  ${UPDATE_CMD} 2>&1 | tee -a $PACKAGE_LOGFILE
+#fi
+#${INSTALL_CMD} ${PACKAGE_LIST} 2>&1 | tee -a $PACKAGE_LOGFILE
 
 if ! test -d "${my_dir}/src" ; then
   mkdir "${my_dir}/src"
 fi
 
-if ! test -d "/opt" ; then
-  mkdir "/opt"
+if ! test -d "${PREFIX}" ; then
+  if ! mkdir "${PREFIX}" >/dev/null 2>&1 ; then
+    if test $use_sudo -ne 0 ; then
+      if sudo mkdir "${PREFIX}" ; then
+        sudo chown "$(id -u -n):$(id -g -n)" "${PREFIX}"
+      else
+        printf "Error, unable to create ${PREFIX}\n"
+        exit 1
+      fi
+    fi
+  fi
 fi
 
 DOWNLOAD_LOGFILE=$(mktemp)
@@ -473,11 +494,6 @@ printf "Downloading Lua ${LUA_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" \
   "lua-${LUA_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
-
-printf "Downloading Stream Echo Module ${STREAM_ECHO_NGINX_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/openresty/stream-echo-nginx-module/archive/${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" \
-  "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
 printf "Downloading RTMP Module ${NGINX_RTMP_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
@@ -504,10 +520,20 @@ download \
   "https://github.com/tokers/lua-io-nginx-module/archive/${LUA_IO_VERSION}.tar.gz" \
   "lua-io-nginx-module-${LUA_IO_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
+printf "Downloading lua-var module ${LUA_VAR_NGX_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+download \
+  "https://github.com/api7/lua-var-nginx-module/archive/v${LUA_VAR_NGX_VERSION}.tar.gz" \
+  "lua-var-nginx-module-${LUA_VAR_NGX_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+
 printf "Downloading LibreSSL ${LIBRESSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
 download \
   "http://www.mirrorservice.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
   "libressl-${LIBRESSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+
+printf "Downloading OpenSSL ${OPENSSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+download \
+  "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
+  "openssl-${OPENSSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
 printf "Extracting sources\n"
 
@@ -519,9 +545,6 @@ extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
 
 printf "Extractint Lua...\n"
 extract "lua-${LUA_VERSION}" ".tar.gz"
-
-printf "Extracting Stream Echo Module...\n"
-extract "stream-echo-nginx-module-${STREAM_ECHO_NGINX_MODULE_VERSION}" ".tar.gz"
 
 printf "Extracting RTMP module\n"
 extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
@@ -538,8 +561,14 @@ extract "nchan-${NCHAN_VERSION}" ".tar.gz"
 printf "Extracting lua-io\n"
 extract "lua-io-nginx-module-${LUA_IO_VERSION}" ".tar.gz"
 
+printf "Extracting lua-var\n"
+extract "lua-var-nginx-module-${LUA_VAR_NGX_VERSION}" ".tar.gz"
+
 printf "Extracting LibreSSL...\n"
 extract "libressl-${LIBRESSL_VERSION}" ".tar.gz"
+
+printf "Extracting OpenSSL...\n"
+extract "openssl-${OPENSSL_VERSION}" ".tar.gz"
 
 openresty_options=""
 openresty_modules=""
@@ -657,10 +686,11 @@ done
 for ext_mod_opt in \
   'flv' \
   'rtmp' \
-  'stream_echo' \
   'ngx_lua_ipc' \
   'nchan' \
-  'lua_io' ; do
+  'lua_io' \
+  'lua_var_ngx' \
+  ; do
   eval "mod_val=\$${ext_mod_opt}"
   if [ ${mod_val} -eq 1 ] ; then
     eval "mod_path=\$${ext_mod_opt}_path"
@@ -671,6 +701,21 @@ done
 LIBRESSL_INSTALL_NEEDED=0
 OPENRESTY_INSTALL_NEEDED=0
 
+OURSSL_NAME=LibreSSL
+OURSSL_VERSION=$LIBRESSL_VERSION
+OURSSL_PATH=libressl
+OURSSL_CONFIGURE=./configure
+OURSSL_OPTS="--enable-shared --enable-static"
+
+
+if test $use_openssl -eq 1 ; then
+  OURSSL_NAME=OpenSSL
+  OURSSL_VERSION=$OPENSSL_VERSION
+  OURSSL_PATH=openssl
+  OURSSL_CONFIGURE=./config
+  OURSSL_OPTS="--openssldir=${PREFIX} -Wl,-rpath=$PREFIX/lib shared"
+fi
+
 if ! test -f "$PREFIX/bin/openssl" ; then
   LIBRESSL_INSTALL_NEEDED=1
   OPENRESTY_INSTALL_NEEDED=1
@@ -679,29 +724,28 @@ elif test "$($PREFIX/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSIO
   OPENRESTY_INSTALL_NEEDED=1
 fi
 
-
 if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
   LIBRESSL_LOGFILE=$(mktemp)
-  printf "Configuring LibreSSL ${LIBRESSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
-  pushd ${my_dir}/src/libressl-${LIBRESSL_VERSION}
+
+  printf "Configuring ${OURSSL_NAME} ${OURSSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
+  pushd ${my_dir}/src/${OURSSL_PATH}-${OURSSL_VERSION}
   make clean >/dev/null 2>&1 || true
   LDFLAGS="-s" \
-  ./configure \
+  ${OURSSL_CONFIGURE} \
     --prefix=$PREFIX \
-    --enable-shared \
-    --enable-static >> $LIBRESSL_LOGFILE 2>&1
-  printf "Building LibreSSL\n" | tee -a $LIBRESSL_LOGFILE
+    ${OURSSL_OPTS} >> $LIBRESSL_LOGFILE 2>&1
+  printf "Building ${OURSSL_NAME}\n" | tee -a $LIBRESSL_LOGFILE
   make -j$nprocs >>$LIBRESSL_LOGFILE 2>&1
-  printf "Installing LibreSSL\n" | tee -a $LIBRESSL_LOGFILE
+  printf "Installing ${OURSSL_NAME}\n" | tee -a $LIBRESSL_LOGFILE
   make install >>$LIBRESSL_LOGFILE 2>&1
   popd
-  printf "Done installing LibreSSL\n" | tee -a $LIBRESSL_LOGFILE
+  printf "Done installing ${OURSSL}\n" | tee -a $LIBRESSL_LOGFILE
 fi
 
 if ! test -f "$PREFIX/bin/openresty" ; then
   OPENRESTY_INSTALL_NEEDED=1
 else
-  if test "$($PREFIX/bin/openresty -V 2>&1 | grep 'built with LibreSSL' | cut -d' ' -f4)" != "${LIBRESSL_VERSION}" ; then
+  if test "$($PREFIX/bin/openresty -V 2>&1 | grep "built with ${OURSSL_NAME}" | cut -d' ' -f4)" != "${OURSSL_VERSION}" ; then
     OPENRESTY_INSTALL_NEEDED=1
   elif test "$($PREFIX/bin/openresty -V 2>&1 | grep 'nginx version:' | cut -d'/' -f2)" != "${OPENRESTY_VERSION}" ; then
     OPENRESTY_INSTALL_NEEDED=1
