@@ -43,6 +43,7 @@ PREFIX="/opt/openresty-${OPENRESTY_VERSION}"
 nprocs=1
 make_symlinks=0
 use_sudo=0
+use_libressl=1
 use_openssl=0
 
 #default on modules
@@ -150,8 +151,17 @@ fi
 
 for opt in "$@" ; do
     case "$opt" in
+      --use-system-ssl)
+        use_libressl=0
+        use_openssl=0
+        ;;
       --use-openssl)
+        use_libressl=0
         use_openssl=1
+        ;;
+      --use-libressl)
+        use_libressl=1
+        use_openssl=0
         ;;
       --use-sudo)
         use_sudo=1
@@ -405,33 +415,54 @@ if test "${DISTRO}" = "ubuntu"; then
   UPDATE_CMD="apt-get update"
   INSTALL_CMD="apt-get install -y"
   PACKAGE_LIST="linux-headers-generic libxslt-dev ${libgd_xpm_dev} libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev perl make gcc unzip curl git patch tar gzip"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST libssl-dev"
+  fi
 
 elif test "${DISTRO}" = "debian" ; then
   UPDATE_CMD="apt-get update"
   INSTALL_CMD="apt-get install -y"
   PACKAGE_LIST="linux-headers-amd64 libxslt-dev libgd2-xpm-dev libgeoip-dev zlib1g-dev libreadline-dev libncurses5-dev libpcre3-dev perl make gcc unzip curl git patch tar gzip"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST libssl-dev"
+  fi
 
 elif test "${DISTRO}" = "centos" -o "${DISTRO}" = "rhel" ; then
   INSTALL_CMD="yum install -y"
   PACKAGE_LIST="kernel-headers libxslt-devel gd-devel readline-devel ncurses-devel pcre-devel perl make gcc unzip curl git patch tar gzip libcurl-devel zlib* xz xz-devel readline-devel"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST openssl-devel"
+  fi
 
 elif test "${DISTRO}" = "fedora" ; then
   INSTALL_CMD="dnf install -y"
   PACKAGE_LIST="kernel-headers libxslt-devel gd-devel geoip-devel zlib-devel readline-devel ncurses-devel pcre-devel perl make gcc unzip curl git patch tar gzip"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST openssl-devel"
+  fi
 
 elif test "${DISTRO}" = "alpine" ; then
   UPDATE_CMD="apk update"
   INSTALL_CMD="apk add"
   PACKAGE_LIST="linux-headers gd-dev geoip-dev libxslt-dev musl-dev zlib-dev readline-dev ncurses-dev pcre-dev perl make unzip curl git patch gcc tar gzip"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST openssl-dev"
+  fi
 
 elif test "${DISTRO}" = "opensuse" ; then
   INSTALL_CMD="zypper install -y"
   PACKAGE_LIST="kernel-headers libxslt-devel gd-devel libGeoIP-devel zlib-devel readline-devel ncurses-devel pcre-devel perl make gcc unzip curl git patch tar gzip"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST openssl-devel"
+  fi
 
 elif test "${DISTRO}" = "arch" ; then
   UPDATE_CMD="pacman -Sy"
   INSTALL_CMD="pacman -S --needed --noconfirm"
   PACKAGE_LIST="linux-headers libxslt gd geoip zlib readline ncurses pcre perl make gcc unzip curl git patch tar gzip"
+  if test $use_libressl -eq 0 && test $use_openssl -eq 0 ; then
+    PACKAGE_LIST="$PACKAGE_LIST openssl"
+  fi
 
 elif test "${DISTRO}" = "osx" ; then
   UPDATE_CMD="brew update"
@@ -698,15 +729,16 @@ for ext_mod_opt in \
   fi
 done
 
-LIBRESSL_INSTALL_NEEDED=0
+SSL_INSTALL_NEEDED=0
 OPENRESTY_INSTALL_NEEDED=0
 
-OURSSL_NAME=LibreSSL
-OURSSL_VERSION=$LIBRESSL_VERSION
-OURSSL_PATH=libressl
-OURSSL_CONFIGURE=./configure
-OURSSL_OPTS="--enable-shared --enable-static"
-
+if test $use_libressl -eq 1 ; then
+  OURSSL_NAME=LibreSSL
+  OURSSL_VERSION=$LIBRESSL_VERSION
+  OURSSL_PATH=libressl
+  OURSSL_CONFIGURE=./configure
+  OURSSL_OPTS="--enable-shared --enable-static"
+fi
 
 if test $use_openssl -eq 1 ; then
   OURSSL_NAME=OpenSSL
@@ -716,30 +748,32 @@ if test $use_openssl -eq 1 ; then
   OURSSL_OPTS="--openssldir=${PREFIX} -Wl,-rpath=$PREFIX/lib shared"
 fi
 
-if ! test -f "$PREFIX/bin/openssl" ; then
-  LIBRESSL_INSTALL_NEEDED=1
-  OPENRESTY_INSTALL_NEEDED=1
-elif test "$($PREFIX/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
-  LIBRESSL_INSTALL_NEEDED=1
-  OPENRESTY_INSTALL_NEEDED=1
-fi
-
-if test ${LIBRESSL_INSTALL_NEEDED} -eq 1 ; then
-  LIBRESSL_LOGFILE=$(mktemp)
-
-  printf "Configuring ${OURSSL_NAME} ${OURSSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
-  pushd ${my_dir}/src/${OURSSL_PATH}-${OURSSL_VERSION}
-  make clean >/dev/null 2>&1 || true
-  LDFLAGS="-s" \
-  ${OURSSL_CONFIGURE} \
-    --prefix=$PREFIX \
-    ${OURSSL_OPTS} >> $LIBRESSL_LOGFILE 2>&1
-  printf "Building ${OURSSL_NAME}\n" | tee -a $LIBRESSL_LOGFILE
-  make -j$nprocs >>$LIBRESSL_LOGFILE 2>&1
-  printf "Installing ${OURSSL_NAME}\n" | tee -a $LIBRESSL_LOGFILE
-  make install >>$LIBRESSL_LOGFILE 2>&1
-  popd
-  printf "Done installing ${OURSSL}\n" | tee -a $LIBRESSL_LOGFILE
+if test $use_libressl -eq 1 || test $use_openssl -eq 1 ; then
+  if ! test -f "$PREFIX/bin/openssl" ; then
+    SSL_INSTALL_NEEDED=1
+    OPENRESTY_INSTALL_NEEDED=1
+  elif test "$($PREFIX/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
+    SSL_INSTALL_NEEDED=1
+    OPENRESTY_INSTALL_NEEDED=1
+  fi
+  
+  if test ${SSL_INSTALL_NEEDED} -eq 1 ; then
+    LIBRESSL_LOGFILE=$(mktemp)
+  
+    printf "Configuring ${OURSSL_NAME} ${OURSSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
+    pushd ${my_dir}/src/${OURSSL_PATH}-${OURSSL_VERSION}
+    make clean >/dev/null 2>&1 || true
+    LDFLAGS="-s" \
+    ${OURSSL_CONFIGURE} \
+      --prefix=$PREFIX \
+      ${OURSSL_OPTS} >> $LIBRESSL_LOGFILE 2>&1
+    printf "Building ${OURSSL_NAME}\n" | tee -a $LIBRESSL_LOGFILE
+    make -j$nprocs >>$LIBRESSL_LOGFILE 2>&1
+    printf "Installing ${OURSSL_NAME}\n" | tee -a $LIBRESSL_LOGFILE
+    make install >>$LIBRESSL_LOGFILE 2>&1
+    popd
+    printf "Done installing ${OURSSL}\n" | tee -a $LIBRESSL_LOGFILE
+  fi
 fi
 
 if ! test -f "$PREFIX/bin/openresty" ; then
