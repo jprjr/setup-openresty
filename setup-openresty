@@ -783,21 +783,21 @@ if test $use_openssl -eq 1 ; then
   OURSSL_VERSION=$OPENSSL_VERSION
   OURSSL_PATH=openssl
   OURSSL_CONFIGURE=./config
-  OURSSL_OPTS="--openssldir=${PREFIX} -Wl,-rpath=$PREFIX/lib shared"
+  OURSSL_OPTS="--openssldir=${PREFIX} -Wl,-rpath=${PREFIX}/lib --libdir=${PREFIX}/lib shared"
 fi
 
 if test $use_libressl -eq 1 || test $use_openssl -eq 1 ; then
   if ! test -f "$PREFIX/bin/openssl" ; then
     SSL_INSTALL_NEEDED=1
     OPENRESTY_INSTALL_NEEDED=1
-  elif test "$($PREFIX/bin/openssl version | cut -f2 -d' ')" != "${LIBRESSL_VERSION}" ; then
+  elif test "$($PREFIX/bin/openssl version | cut -f2 -d' ')" != "${OURSSL_VERSION}" ; then
     SSL_INSTALL_NEEDED=1
     OPENRESTY_INSTALL_NEEDED=1
   fi
-  
+
   if test ${SSL_INSTALL_NEEDED} -eq 1 ; then
     LIBRESSL_LOGFILE=$(mktemp)
-  
+
     printf "Configuring ${OURSSL_NAME} ${OURSSL_VERSION} (log at ${LIBRESSL_LOGFILE})\n" | tee -a $LIBRESSL_LOGFILE
     pushd ${my_dir}/src/${OURSSL_PATH}-${OURSSL_VERSION}
     make clean >/dev/null 2>&1 || true
