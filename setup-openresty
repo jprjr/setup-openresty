@@ -337,6 +337,12 @@ if test "$(id -u)" != "0" ; then
   fi
 fi
 
+if test $rtmp -eq 1 && test $flv -eq 1 ; then
+  printf "The FLV and RTMP modules are both enabled, but they conflict.\n"
+  printf "Disabling the RTMP module in favor of the FLV module.\n"
+  rtmp=0
+fi
+
 if ! test command -v pushd 1>/dev/null 2>&1 ; then
 pushd() {
     if test -z "PUSHD_STACK" ; then
@@ -526,45 +532,61 @@ download \
   "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" \
   "lua-${LUA_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
 
-printf "Downloading RTMP Module ${NGINX_RTMP_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" \
-  "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $rtmp -eq 1 ; then
+  printf "Downloading RTMP Module ${NGINX_RTMP_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" \
+    "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading FLV module ${NGINX_HTTP_FLV_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/winshining/nginx-http-flv-module/archive/v${NGINX_HTTP_FLV_MODULE_VERSION}.tar.gz" \
-  "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $flv -eq 1 ; then
+  printf "Downloading FLV module ${NGINX_HTTP_FLV_MODULE_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://github.com/winshining/nginx-http-flv-module/archive/v${NGINX_HTTP_FLV_MODULE_VERSION}.tar.gz" \
+    "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading Nginx Lua IPC Module ${NGX_LUA_IPC_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/slact/ngx_lua_ipc/archive/v${NGX_LUA_IPC_VERSION}.tar.gz" \
-  "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $ngx_lua_ipc -eq 1 ; then
+  printf "Downloading Nginx Lua IPC Module ${NGX_LUA_IPC_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://github.com/slact/ngx_lua_ipc/archive/v${NGX_LUA_IPC_VERSION}.tar.gz" \
+    "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading nchan Module ${NCHAN_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
-  "nchan-${NCHAN_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $nchan -eq 1 ; then
+  printf "Downloading nchan Module ${NCHAN_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://github.com/slact/nchan/archive/v${NCHAN_VERSION}.tar.gz" \
+    "nchan-${NCHAN_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading lua-io module ${LUA_IO_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/tokers/lua-io-nginx-module/archive/${LUA_IO_VERSION}.tar.gz" \
-  "lua-io-nginx-module-${LUA_IO_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $lua_io -eq 1 ; then
+  printf "Downloading lua-io module ${LUA_IO_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://github.com/tokers/lua-io-nginx-module/archive/${LUA_IO_VERSION}.tar.gz" \
+    "lua-io-nginx-module-${LUA_IO_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading lua-var module ${LUA_VAR_NGX_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://github.com/api7/lua-var-nginx-module/archive/v${LUA_VAR_NGX_VERSION}.tar.gz" \
-  "lua-var-nginx-module-${LUA_VAR_NGX_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $lua_var_ngx -eq 1 ; then
+  printf "Downloading lua-var module ${LUA_VAR_NGX_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://github.com/api7/lua-var-nginx-module/archive/v${LUA_VAR_NGX_VERSION}.tar.gz" \
+    "lua-var-nginx-module-${LUA_VAR_NGX_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading LibreSSL ${LIBRESSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "http://www.mirrorservice.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
-  "libressl-${LIBRESSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $use_libressl -eq 1 ; then
+  printf "Downloading LibreSSL ${LIBRESSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "http://www.mirrorservice.org/pub/OpenBSD/LibreSSL/libressl-${LIBRESSL_VERSION}.tar.gz" \
+    "libressl-${LIBRESSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
-printf "Downloading OpenSSL ${OPENSSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
-download \
-  "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
-  "openssl-${OPENSSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+if test $use_openssl -eq 1 ; then
+  printf "Downloading OpenSSL ${OPENSSL_VERSION}\n" | tee -a ${DOWNLOAD_LOGFILE}
+  download \
+    "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz" \
+    "openssl-${OPENSSL_VERSION}.tar.gz" 2>&1 | tee -a ${DOWNLOAD_LOGFILE}
+fi
 
 printf "Extracting sources\n"
 
@@ -574,32 +596,48 @@ extract "openresty-${OPENRESTY_VERSION}" ".tar.gz"
 printf "Extracting LuaRocks...\n"
 extract "luarocks-${LUAROCKS_VERSION}" ".tar.gz"
 
-printf "Extractint Lua...\n"
+printf "Extracting Lua...\n"
 extract "lua-${LUA_VERSION}" ".tar.gz"
 
-printf "Extracting RTMP module\n"
-extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
+if test $rtmp -eq 1 ; then
+  printf "Extracting RTMP module\n"
+  extract "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting FLV module\n"
-extract "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}" ".tar.gz"
+if test $flv -eq 1 ; then
+  printf "Extracting FLV module\n"
+  extract "nginx-http-flv-module-${NGINX_HTTP_FLV_MODULE_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting Lua IPC module\n"
-extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
+if test $ngx_lua_ipc -eq 1 ; then
+  printf "Extracting Lua IPC module\n"
+  extract "ngx_lua_ipc-${NGX_LUA_IPC_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting NChan...\n"
-extract "nchan-${NCHAN_VERSION}" ".tar.gz"
+if test $nchan -eq 1 ; then
+  printf "Extracting NChan...\n"
+  extract "nchan-${NCHAN_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting lua-io\n"
-extract "lua-io-nginx-module-${LUA_IO_VERSION}" ".tar.gz"
+if test $lua_io -eq 1 ; then
+  printf "Extracting lua-io\n"
+  extract "lua-io-nginx-module-${LUA_IO_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting lua-var\n"
-extract "lua-var-nginx-module-${LUA_VAR_NGX_VERSION}" ".tar.gz"
+if test $lua_var_ngx -eq 1 ; then
+  printf "Extracting lua-var\n"
+  extract "lua-var-nginx-module-${LUA_VAR_NGX_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting LibreSSL...\n"
-extract "libressl-${LIBRESSL_VERSION}" ".tar.gz"
+if test $use_libressl -eq 1 ; then
+  printf "Extracting LibreSSL...\n"
+  extract "libressl-${LIBRESSL_VERSION}" ".tar.gz"
+fi
 
-printf "Extracting OpenSSL...\n"
-extract "openssl-${OPENSSL_VERSION}" ".tar.gz"
+if test $use_openssl -eq 1 ; then
+  printf "Extracting OpenSSL...\n"
+  extract "openssl-${OPENSSL_VERSION}" ".tar.gz"
+fi
 
 openresty_options=""
 openresty_modules=""
