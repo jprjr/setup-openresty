@@ -3,8 +3,8 @@
 This is just a small bash script for downloading + installing OpenResty.
 
 It will install OpenResty to `/opt/openresty-${OPENRESTY_VERSION}` (or to a prefix
-of your choosing). It includes its own copy of LibreSSL, otherwise it tries
-to use the default system libraries, like PCRE, etc.
+of your choosing). It can use it's own copy
+of LibreSSL or OpenSSL. For other libraries (like zlib and PCRE), it will use your system libraries.
 
 It also downloads and installs Lua 5.1.5 + LuaRocks into `/opt/openresty-${OPENRESTY_VERSION}/luajit`.
 This provides compatibility when installing modules with LuaRocks. For example,
@@ -34,6 +34,12 @@ so these also all do the same thing:
   * `--with-ngx-lua-ipc` - enables [ngx_lua_ipc](https://github.com/slact/ngx_lua_ipc)
   * `--with-flv` - enables [ngx-http-flv](https://github.com/winshining/nginx-http-flv-module), a fork of the rtmp module
   * `--with-lua-io` - enables [lua-io-nginx-module](https://github.com/tokers/lua-io-nginx-module)
+* Choosing the SSL implementation can be accomplished a few ways:
+  * `--use-libressl` - (default) use a self-contained LibreSSL build
+  * `--use-libressl=x.x.x` - use a self-contained LibreSSL build, with a specific version
+  * `--use-openssl` - use a self-contained OpenSSL build
+  * `--use-openssl=x.x.x` - use a self-contained OpenSSL build, with a specific version
+  * `--use-system-ssl` - use your default SSL implementation.
 * You can also pass `--minimal` to disable all non-essential modules/features (`http` is still enabled, though),
 then use `--with-(x)` to explicitly enable the features/modules you want
 * Alternatively, you can pass `--large` to enable all the modules/features, *except* the drizzle, iconv, and postgres

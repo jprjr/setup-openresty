@@ -159,9 +159,19 @@ for opt in "$@" ; do
         use_libressl=0
         use_openssl=1
         ;;
+      --use-openssl=*)
+        use_libressl=0
+        use_openssl=1
+        OPENSSL_VERSION=$(printf '%s' "$opt" | cut -d'=' -f2)
+        ;;
       --use-libressl)
         use_libressl=1
         use_openssl=0
+        ;;
+      --use-libressl=*)
+        use_libressl=1
+        use_openssl=0
+        LIBRESSL_VERSION=$(printf '%s' "$opt" | cut -d'=' -f2)
         ;;
       --use-sudo)
         use_sudo=1
